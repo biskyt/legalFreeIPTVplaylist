@@ -36,6 +36,14 @@ _EPISODE_PATTERNS = [
     re.compile(r"\b(\d{1,2})x(\d{1,3})\b"),
 ]
 _EPISODE_ONLY = re.compile(r"\bEp(?:isode)?\.?\s*#?\s*(\d{1,3})\b", re.I)
+_LEADING_NUMBER = re.compile(r"\(?(\d{1,3})\)?(?=[\s\-:])")
+# Upload noise in episode titles: bracketed notes with digits, quality tags, years and bare season codes.
+_JUNK = re.compile(
+    r"\((?=[^)]*\d)[^)]*\)|\b(?:512kb|h264|public domain|pd|tv|colou?ri[sz]ed|subtitled|w/ ?commercials|"
+    r"\d+ ?mbps|web)\b|\b(?:19|20)\d\d\b|\bS\d{1,2}\b",
+    re.I,
+)
+_ARTICLE_LAST = re.compile(r"^(.+?),\s*(The|A|An)$", re.I)
 
 
 # --- search and metadata ---------------------------------------------------------------------------------------
@@ -219,6 +227,7 @@ def download_url(identifier: str, name: str) -> str:
 
 def _movie_title(title: str, year: int | None) -> str:
     title = _TRAILING_YEAR.sub("", title).strip()
+    title = _ARTICLE_LAST.sub(r"\2 \1", title)  # "Monster Walks, The" -> "The Monster Walks"
     return f"{title} ({year})" if year else title
 
 
@@ -248,6 +257,7 @@ def movies(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
     rules = cfg.get("rules", {})
     pd_max, pre = rules.get("pd_max_year", 1977), rules.get("pre_year", 1931)
     min_minutes, short_minutes = rules.get("min_minutes", 5), rules.get("short_minutes", 40)
+    excluded = re.compile(rules["exclude_titles"], re.I) if rules.get("exclude_titles") else None
     decisions: list[Decision] = []
     seen: set[str] = set()
     picked: list[tuple[dict, dict]] = []  # (collection config, listing item)
@@ -262,6 +272,9 @@ def movies(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
             seen.add(ident)
             if ident in denylist:
                 decisions.append(Decision(SOURCE, ident, False, "denylist"))
+                continue
+            if excluded and excluded.search(f"{ident} {item.get('title') or ''}"):
+                decisions.append(Decision(SOURCE, ident, False, "excluded-title"))
                 continue
             ok, why = license_ok(item.get("licenseurl"), _year(item.get("year"), item.get("date")),
                                  pd_max_year=pd_max, pre_year=pre)
@@ -323,15 +336,30 @@ def parse_episode(text: str) -> tuple[int | None, int | None]:
     return (None, int(m.group(1))) if m else (None, None)
 
 
-def episode_title(text: str, show: dict) -> str:
-    """'Beverly_Hillbillies_Ep01_The_Clampetts_Strike_Oil' -> 'The Clampetts Strike Oil'."""
-    t = re.sub(r"\.mp4$", "", text, flags=re.I).replace("_", " ")
+def episode_info(text: str, show: dict) -> tuple[int | None, int | None, str]:
+    """(season, episode, title) from an upload's title or file name, e.g.
+    'Beverly_Hillbillies_Ep01_The_Clampetts_Strike_Oil' -> (None, 1, 'The Clampetts Strike Oil') and
+    'Sherlock Holmes 02 The Case Of Lady Beryl.mp4' -> (None, 2, 'The Case Of Lady Beryl')."""
+    t = re.sub(r"(\.ia)?\.mp4$", "", text, flags=re.I).replace("_", " ")
+    if " " not in t:
+        t = t.replace(".", " ")  # dotted file names: s01e01.The.Speckled.Band
     t = re.sub(show["match"], " ", t, flags=re.I)
+    season, number = parse_episode(t)
     for pattern in [*_EPISODE_PATTERNS, _EPISODE_ONLY]:
         t = pattern.sub(" ", t)
-    t = re.sub(r"\b(512kb|h264|public domain|pd|tv|w/ ?commercials)\b", " ", t, flags=re.I)
-    t = _SPACE.sub(" ", t).strip(" -:|,.#'\"")
-    return t
+    t = t.strip(" -:|,.#'\"")
+    if number is None:
+        m = _LEADING_NUMBER.match(t)
+        if m:
+            number, t = int(m.group(1)), t[m.end():]
+    t = _JUNK.sub(" ", t)
+    t = _SPACE.sub(" ", t.replace("''", "'")).strip(" -:;|,.#'\"")
+    t = re.sub(r"^in\s+|\s+Ep$", "", t, flags=re.I)
+    return season, number, t
+
+
+def _title_key(title: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", re.sub(r"^(the )?case of (the )?", "", title.lower()))
 
 
 def series(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[Entry], list[Decision]]:
@@ -342,7 +370,9 @@ def series(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
         idents = [i["identifier"] for i in listing if i["identifier"] not in denylist]
         summaries = cache.get_many(idents)
         matcher = re.compile(show["match"], re.I)
-        episodes: dict[tuple, Entry] = {}
+        episodes: list[Entry] = []
+        titles: set[str] = set()
+        numbers: set[tuple[int, int]] = set()
         for ident in idents:
             summary = summaries.get(ident)
             if not summary:
@@ -358,22 +388,40 @@ def series(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
             if kind not in ("pd", "cc-by", "cc-by-sa"):
                 decisions.append(Decision(SOURCE, ident, False, f"series:{kind or 'no-license'}"))
                 continue
-            vids = [v for v in summary["videos"] if (v.get("length") or 0) >= show.get("min_minutes", 10) * 60]
+            # Episode-length videos only; this also keeps feature films about the same characters out.
+            lo, hi = show.get("min_minutes", 10) * 60, show.get("max_minutes", 70) * 60
+            vids = [v for v in summary["videos"] if lo <= (v.get("length") or 0) <= hi]
             if not vids:
                 decisions.append(Decision(SOURCE, ident, False, "no-playable-video"))
                 continue
             # A single-video item is one episode named by the item; a multi-video item holds several episodes.
             for v in vids:
-                label = (v.get("title") or v["name"]) if len(vids) > 1 else (summary.get("title") or ident)
-                season, number = parse_episode(f"{label} {v['name']}" if len(vids) > 1 else f"{label} {ident}")
-                name = episode_title(label, show) or episode_title(v["name"], show) or ident
-                key = (season, number) if number is not None else ("title", name.lower())
-                if key in episodes:
+                if len(vids) > 1:
+                    season, number, name = episode_info(v.get("title") or v["name"], show)
+                else:
+                    season, number, name = episode_info(summary.get("title") or ident, show)
+                    if number is None:
+                        season, number, _ = episode_info(f"{ident} {v['name']}", show)
+                name = name or (f"Episode {number}" if number is not None else "")
+                if not name:
+                    decisions.append(Decision(SOURCE, f"{ident}/{v['name']}", False, "untitled-episode"))
                     continue
-                code = f"S{season or 1:02d}E{number:02d} - " if number is not None else ""
-                episodes[key] = Entry(
+                # The same episode is often uploaded several times, numbered differently or not at all.
+                title_key = _title_key(name) if not name.startswith("Episode ") else None
+                if title_key and title_key in titles:
+                    continue
+                if number is not None and ((season or 1), number) in numbers:
+                    if not title_key:
+                        continue
+                    season = number = None
+                if title_key:
+                    titles.add(title_key)
+                if number is not None:
+                    numbers.add(((season or 1), number))
+                code = f" S{season or 1:02d}E{number:02d}" if number is not None else ""
+                episodes.append(Entry(
                     id=f"ia.{ident}" + (f".{_slug(v['name'])}" if len(vids) > 1 else ""),
-                    title=f"{show['name']} {code}{name}",
+                    title=f"{show['name']}{code} - {name}",
                     url=download_url(ident, v["name"]),
                     group=f"Series: {show['name']}",
                     kind="series",
@@ -389,8 +437,7 @@ def series(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
                     page=f"https://archive.org/details/{urllib.parse.quote(ident)}",
                     description=summary.get("description"),
                     extra={"basis": show.get("basis")},
-                )
+                ))
             decisions.append(Decision(SOURCE, ident, True, f"series:{show['name']}"))
-        found = list(episodes.values())[: show.get("max", 300)]
-        entries += found
+        entries += episodes[: show.get("max", 300)]
     return entries, decisions

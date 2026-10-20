@@ -7,6 +7,8 @@ rules:
   pre_year: 1931      # items with no licence are kept only if dated before this (US public domain in 2026)
   min_minutes: 5      # ignore clips shorter than this
   short_minutes: 40   # anything shorter goes into the shorts group
+  # Titles (or identifiers) to leave out: adult exploitation films, trailers and compilations.
+  exclude_titles: '\bnudist|\bnudie\b|sexploitation|\bstag film|\berotic|\btrailers?\b'
 
 shorts_group: "Movies: Shorts"
 

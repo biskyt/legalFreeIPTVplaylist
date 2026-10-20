@@ -12,6 +12,7 @@
 #   match:   regex an item's identifier or title must match (also stripped from episode titles)
 #   basis:   why the episodes are public domain
 #   max_year: items dated later than this are skipped (the show's public-domain years)
+#   min_minutes / max_minutes: episode length range (default 10-70), which keeps feature films out
 #   max:     cap on episodes (optional, default 300)
 
 shows:
@@ -40,11 +41,6 @@ shows:
     match: 'dragnet'
     basis: 1950s episodes whose copyright was not renewed
     max_year: 1959
-  - name: You Bet Your Life
-    query: 'collection:(classic_tv) AND title:("You Bet Your Life")'
-    match: 'you[ _]bet[ _]your[ _]life'
-    basis: Episodes whose copyright was not renewed
-    max_year: 1961
   - name: Tales of Tomorrow
     query: 'collection:(classic_tv) AND title:("Tales of Tomorrow")'
     match: 'tales[ _-]*of[ _-]*tomorrow'

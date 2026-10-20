@@ -47,9 +47,28 @@ def test_parse_episode(text, expected):
     assert ia.parse_episode(text) == expected
 
 
-def test_episode_title():
-    show = {"match": "beverly[ _]hillbillies"}
-    assert ia.episode_title("Beverly_Hillbillies_Ep01_The_Clampetts_Strike_Oil", show) == "The Clampetts Strike Oil"
+SHERLOCK = {"match": "sherlock[ _-]?holmes"}
+
+
+@pytest.mark.parametrize("text,show,expected", [
+    ("Beverly_Hillbillies_Ep01_The_Clampetts_Strike_Oil", {"match": "beverly[ _]hillbillies"},
+     (None, 1, "The Clampetts Strike Oil")),
+    ("Sherlock Holmes 02 The Case Of Lady Beryl.mp4", SHERLOCK, (None, 2, "The Case Of Lady Beryl")),
+    ("SH - (23) The Christmas Pudding - 1955", {"match": "^SH\\b"}, (None, 23, "The Christmas Pudding")),
+    ("( 1954) Sherlock Holmes Ep 1", SHERLOCK, (None, 1, "")),
+    ("Sherlock Holmes 1955 S01E27 The Case of the Perfect Husband (1955-05-20 Color,MysSusp).mp4", SHERLOCK,
+     (1, 27, "The Case of the Perfect Husband")),
+    ("Bonanza s01e19.mp4", {"match": "bonanza"}, (1, 19, "")),
+    ("s01e01.The.Speckled.Band.mp4", SHERLOCK, (1, 1, "The Speckled Band")),
+    ("S04.mp4", SHERLOCK, (None, None, "")),
+])
+def test_episode_info(text, show, expected):
+    assert ia.episode_info(text, show) == expected
+
+
+def test_movie_title_moves_trailing_article():
+    assert ia._movie_title("Monster Walks, The", 1932) == "The Monster Walks (1932)"
+    assert ia._movie_title("Blonde Ice (1948)", 1948) == "Blonde Ice (1948)"
 
 
 def _fake_ia(monkeypatch, listing, metadata):
