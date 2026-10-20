@@ -38,8 +38,7 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
             "credits.html", "index.html"} <= names
 
     _, live = m3u.parse((out / "live.m3u").read_text())
-    assert {e["tvg-id"] for e in live} == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English",
-                                           "nasa.live"}
+    assert {e["tvg-id"] for e in live} == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English"}
     _, movies = m3u.parse((out / "movies.m3u").read_text())
     ids = {e["tvg-id"] for e in movies}
     assert "ia.Detour" in ids and "blender.BigBuckBunny_124" in ids

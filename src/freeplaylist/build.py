@@ -66,7 +66,7 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict]:
         config.save_state(ia_state_path, cache.data)
         log.info("internet archive: fetched metadata for %d items", cache.fetched)
     elif opts.live:
-        # Curated live items (e.g. NASA) still belong in a live-only build.
+        # Curated live items still belong in a live-only build.
         found = curated.build({"direct": load("curated").get("direct")}, cache)
         add(([e for e in found[0] if e.kind == "live"], found[1]), "curated live")
     if opts.live:
@@ -96,8 +96,8 @@ def check_health(entries: list[Entry], opts: Options) -> tuple[list[Entry], list
     live = [e for e in entries if e.kind == "live"]
     vod = [e for e in entries if e.kind != "live"]
     live, d1 = healthcheck.run(live, state, checker)
-    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(per_host=4), sample=opts.vod_sample,
-                              rng=random.Random())
+    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(per_host=4, timeout=20), sample=opts.vod_sample,
+                              rng=random.Random(), keep_on_error=True)
     urls = {c["url"] for e in entries for c in (e.extra.get("candidates") or [{"url": e.url}])}
     config.save_state(path, healthcheck.prune(state, urls))
     log.info("health: kept %d live, %d vod", len(live), len(vod))

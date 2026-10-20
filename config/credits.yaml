@@ -34,13 +34,6 @@ sources:
     attribution: "© Blender Foundation | studio.blender.org"
     note: Streamed from the Internet Archive's copies.
 
-  nasa:
-    name: NASA
-    url: https://plus.nasa.gov/
-    provides: NASA's live stream
-    license: US government work, not subject to copyright in the US
-    note: NASA's name and logo are trademarks and are used only to identify the channel.
-
   pluto-tv:
     name: Pluto TV
     url: https://pluto.tv/

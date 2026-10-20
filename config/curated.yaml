@@ -1,5 +1,9 @@
 # Hand-picked items with a known licence. Each needs a `source` with an entry in credits.yaml.
 #
+# A direct item looks like:
+#   - {id: example.live, title: Example, kind: live, group: "Live: News", url: https://..., source: <credit key>,
+#      license: ..., page: https://...}
+#
 # Internet Archive items (`ia:`) are resolved to their best MP4 file; the licence given here is used as-is.
 # Direct items (`url:`) are published as given (live streams are still health-checked).
 
@@ -66,13 +70,4 @@ ia_defaults:
   source: blender
   id_prefix: blender
 
-direct:
-  - id: nasa.live
-    title: NASA Live
-    kind: live
-    group: "Live: Science"
-    url: https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8
-    logo: https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo.svg
-    source: nasa
-    license: US government work, public domain
-    page: https://plus.nasa.gov/
+direct: []

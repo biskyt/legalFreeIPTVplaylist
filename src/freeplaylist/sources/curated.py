@@ -1,4 +1,4 @@
-"""Hand-picked items from config/curated.yaml (Blender open movies, NASA's live stream, ...)."""
+"""Hand-picked items from config/curated.yaml (Blender open movies, and any direct streams)."""
 
 from __future__ import annotations
 

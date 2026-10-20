@@ -6,7 +6,9 @@ Results are remembered in state/health.json:
   * a stream that has never been seen working is dropped as soon as it fails;
   * a stream that worked before gets one grace run, and is dropped after 2 consecutive failures;
   * a 401/403/451 on a stream iptv-org labels "Geo-blocked" is kept, as the build runs from a US data centre.
-Only a sample of VOD entries (plus all new ones) is checked each run; archive.org files rarely disappear.
+Only a sample of VOD entries (plus all new ones) is checked each run; archive.org files rarely disappear, and a
+VOD entry is only dropped for a definite answer (such as 404), not for a timeout or server error, which archive.org
+returns at busy times.
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ MAX_FAILS = 2
 
 @dataclass
 class Result:
-    status: str  # "ok", "geo" or "dead"
+    status: str  # "ok", "geo", "dead", or "error" (no definite answer: timeout, connection or server error)
     detail: str = ""
 
 
@@ -80,10 +82,17 @@ class Checker:
             v = self._get(urllib.parse.urljoin(p.final_url, variant), ua, ref)
             if v.status in (200, 206) and _is_playlist(v.body):
                 return Result("ok")
-            return Result("dead", f"variant: {v.error or 'not a playlist'}")
+            return Result(_failure(v), f"variant: {v.error or 'not a playlist'}")
         if p.status in GEO_STATUSES and "Geo-blocked" in labels:
             return Result("geo", p.error or "")
-        return Result("dead", p.error or f"HTTP {p.status}")
+        return Result(_failure(p), p.error or f"HTTP {p.status}")
+
+
+def _failure(p: net.Probe) -> str:
+    """'error' when the server gave no definite answer, otherwise 'dead'."""
+    if p.status is None or p.status >= 500 or p.status == 429:
+        return "error"
+    return "dead"
 
 
 def _candidates(e: Entry) -> list[dict]:
@@ -93,8 +102,9 @@ def _candidates(e: Entry) -> list[dict]:
 
 
 def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 1.0, today: str | None = None,
-        rng: random.Random | None = None) -> tuple[list[Entry], list[Decision]]:
-    """Entries that pass (in the same order), and a decision for every entry that was checked."""
+        rng: random.Random | None = None, keep_on_error: bool = False) -> tuple[list[Entry], list[Decision]]:
+    """Entries that pass (in the same order), and a decision for every entry that was checked.
+    With keep_on_error, an entry whose checks all ended without a definite answer is kept unchanged."""
     today = today or date.today().isoformat()
     rng = rng or random.Random()
 
@@ -113,6 +123,8 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
                 geo = c
         if geo is not None:
             return _use(e, geo), Decision("health", e.id, True, "geo-blocked"), _urls(tried)
+        if keep_on_error and tried and all(r.status == "error" for _, r in tried):
+            return e, Decision("health", e.id, True, f"unconfirmed: {tried[0][1].detail}"), []
         # Grace for a stream that worked last time: keep it unless it has now failed MAX_FAILS runs in a row.
         for c, _ in tried:
             rec = state.get(c["url"]) or {}
@@ -134,7 +146,7 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
         decisions.append(decision)
         for url, r in tried:
             rec = state.setdefault(url, {})
-            if r.status == "dead":
+            if r.status in ("dead", "error"):
                 rec["fails"] = rec.get("fails", 0) + 1
             else:
                 rec.update(ok=today, fails=0)
