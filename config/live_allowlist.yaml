@@ -1,0 +1,17 @@
+# Manual decisions for live channels. These override the automatic rules in both directions.
+# Channel ids are iptv-org ids (https://iptv-org.github.io/api/channels.json).
+#
+# allow:  accept this channel's streams whose host is listed (or any host when `hosts` is omitted),
+#         after the hard checks (blocklist, NSFW, closed channels, bare IP addresses, embedded credentials).
+# deny:   never include this channel.
+# catchup (optional, on an allow entry): catch-up attributes to publish, when a broadcaster's stream supports it.
+#   catchup: {mode: append, days: 1, source: "?utc={utc}&lutc={lutc}"}
+
+allow:
+  # Example:
+  # - channel: AlJazeera.qa
+  #   hosts: [getaj.net]
+  #   reason: Al Jazeera publishes these streams on its own site
+  []
+
+deny: []

@@ -1,0 +1,122 @@
+[
+ {
+  "channel": "DW.de",
+  "feed": "SD",
+  "title": "DW.de",
+  "url": "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8",
+  "quality": "1080p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "DW.de",
+  "feed": "SD",
+  "title": "DW.de",
+  "url": "http://170.83.16.50/DW/index.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "DW.de",
+  "feed": "SD",
+  "title": "DW.de",
+  "url": "https://cdn-7.pishow.tv/live/431/master.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "Example.uk",
+  "feed": "SD",
+  "title": "Example.uk",
+  "url": "https://live.example.co.uk/hls/main.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "Example.uk",
+  "feed": "HD",
+  "title": "Example.uk",
+  "url": "https://live.example.co.uk/hls/ua.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": "Spoof/1",
+  "referrer": null
+ },
+ {
+  "channel": "Adult.us",
+  "feed": "SD",
+  "title": "Adult.us",
+  "url": "https://adult.example/live.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "Old.us",
+  "feed": "SD",
+  "title": "Old.us",
+  "url": "https://old.example/live.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "Blocked.us",
+  "feed": "SD",
+  "title": "Blocked.us",
+  "url": "https://blocked.example/live.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "Pluto1.us",
+  "feed": "SD",
+  "title": "Pluto1.us",
+  "url": "https://jmp2.uk/plu-5f12101f0b12f00007e4f00a.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "AlJazeera.qa",
+  "feed": "English",
+  "title": "AlJazeera.qa",
+  "url": "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": null,
+  "feed": null,
+  "title": null,
+  "url": "https://unknown.example/live.m3u8",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ },
+ {
+  "channel": "Example.uk",
+  "feed": "SD2",
+  "title": "Example.uk",
+  "url": "http://x.example.net/live/user/pass/123.ts",
+  "quality": "720p",
+  "labels": [],
+  "user_agent": null,
+  "referrer": null
+ }
+]

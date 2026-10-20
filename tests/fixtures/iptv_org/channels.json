@@ -1,0 +1,114 @@
+[
+ {
+  "id": "DW.de",
+  "name": "DW",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "DE",
+  "categories": [
+   "news"
+  ],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "website": "https://www.dw.com/"
+ },
+ {
+  "id": "Example.uk",
+  "name": "Example TV",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "UK",
+  "categories": [
+   "news"
+  ],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "website": "https://www.example.co.uk/"
+ },
+ {
+  "id": "Adult.us",
+  "name": "Adult",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "US",
+  "categories": [
+   "xxx"
+  ],
+  "is_nsfw": true,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "website": "https://adult.example/"
+ },
+ {
+  "id": "Old.us",
+  "name": "Old",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "US",
+  "categories": [
+   "news"
+  ],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": "2024-01-01",
+  "replaced_by": null,
+  "website": "https://old.example/"
+ },
+ {
+  "id": "Blocked.us",
+  "name": "Blocked",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "US",
+  "categories": [
+   "news"
+  ],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "website": "https://blocked.example/"
+ },
+ {
+  "id": "Pluto1.us",
+  "name": "Pluto Movies",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "US",
+  "categories": [
+   "movies"
+  ],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "website": "https://pluto.tv/"
+ },
+ {
+  "id": "AlJazeera.qa",
+  "name": "Al Jazeera",
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "country": "QA",
+  "categories": [
+   "news"
+  ],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "website": "https://www.aljazeera.net/"
+ }
+]

@@ -1,0 +1,88 @@
+# Rules that decide which iptv-org streams count as official, legally free streams.
+# See README "How live channels are vetted". Matching is on the stream URL's host name (and path where noted).
+# Every platform named here needs a matching entry in credits.yaml (a test checks this).
+
+# Free, ad-supported (FAST) services. Streams on these get their own "FAST: <name>" group.
+# `host` matches the host name or any parent domain; `path_prefix` (optional) must also match the URL path.
+platforms:
+  - name: Pluto TV
+    credit: pluto-tv
+    host: jmp2.uk          # third-party redirector to Pluto TV's public streams, used by iptv-org
+    path_prefix: /plu-
+  - name: Samsung TV Plus
+    credit: samsung-tv-plus
+    host: jmp2.uk
+    path_prefix: /stvp-
+  - name: Samsung TV Plus
+    credit: samsung-tv-plus
+    host: samsung.wurl.tv
+  - name: Plex
+    credit: plex
+    host: plex.wurl.tv
+  - name: The Roku Channel
+    credit: roku-channel
+    host: roku.wurl.tv
+  - name: The Roku Channel
+    credit: roku-channel
+    host: delivery.roku.com
+  - name: Tubi
+    credit: tubi
+    host: tubi.video
+  - name: Tubi
+    credit: tubi
+    host: tubi.io
+
+# Licensed playout / distribution services that broadcasters pay to deliver their own channels.
+# Streams here are accepted but grouped by the channel's category, like any broadcaster's stream.
+distribution:
+  - amagi.tv
+  - wurl.tv
+  - wurl.com
+  - frequency.stream
+  - uplynk.com
+  - getpublica.com
+  - ottera.tv
+  - otteravision.com
+  - stingray.com
+
+# Delivery domains a broadcaster runs itself that don't match the channel's website domain.
+broadcaster_hosts:
+  getaj.net: Al Jazeera Media Network
+  thehlive.com: Al Jazeera Media Network
+  rtve.es: RTVE
+  ntv.ru: NTV
+
+# General-purpose CDNs. Anyone can rent these, so a stream on them is only accepted when the URL also names
+# the broadcaster: the first label of the channel's website domain (e.g. "dw" for dw.com, "nasa" for nasa.gov)
+# must start a host label, or (when at least 4 letters) appear in the URL path.
+generic_cdns:
+  - akamaized.net
+  - akamaihd.net
+  - cloudfront.net
+  - amazonaws.com
+  - streamlock.net
+  - wowza.com
+  - b-cdn.net
+  - edgenextcdn.net
+  - mdstrm.com
+  - kwikmotion.com
+  - streamhoster.com
+  - cablecast.tv
+  - telvue.com
+  - brightcove.com
+  - brightcovecdn.com
+  - llnwi.net
+  - fastly.net
+  - azureedge.net
+  - googlevideo.com
+
+# Hosts that are never accepted, even if another rule would accept them (known restream / playlist-sharing hosts).
+denied_domains:
+  - freeott.top
+  - freem3u.xyz
+  - dethich.pw
+  - githubusercontent.com
+  - pastebin.com
+
+# Words too generic to identify a broadcaster in the generic-CDN rule.
+generic_tokens: [tv, live, news, www, web, the, channel, stream, radio, media, play, video, hd, one, plus, cdn]

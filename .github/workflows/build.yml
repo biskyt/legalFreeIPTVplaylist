@@ -1,0 +1,60 @@
+name: Build playlists
+
+on:
+  schedule:
+    - cron: "17 4 * * *"   # daily, 04:17 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["src/**", "config/**", "pyproject.toml", ".github/workflows/build.yml"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install .
+
+      # Internet Archive metadata and stream health, kept between runs.
+      - uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      # Fails (and leaves the previously deployed site live) if any feed is broken or too small.
+      - run: python -m freeplaylist build --out site --state state
+
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('state/*.json') != ''
+        with:
+          path: state
+          key: state-${{ github.run_id }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

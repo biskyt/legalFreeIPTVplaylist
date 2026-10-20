@@ -1,0 +1,27 @@
+# The feeds published on GitHub Pages.
+#
+# A feed has one content kind; its entries are rendered once. A combined feed is made by joining the rendered
+# bodies of its member feeds under one header, without fetching, filtering or rendering anything again.
+# `min_entries` guards against publishing a broken build (e.g. when an upstream API is down).
+
+feeds:
+  live:
+    kind: live
+    title: Live TV and FAST channels
+    min_entries: 300
+  movies:
+    kind: movie
+    title: Movies
+    min_entries: 100
+  series:
+    kind: series
+    title: TV series
+    min_entries: 30
+
+combined:
+  vod:
+    title: Movies and series
+    members: [movies, series]
+  playlist:
+    title: Everything
+    members: [live, movies, series]

@@ -1,0 +1,76 @@
+# Every source this project draws on. Each entry's `source` must have a record here (a test checks this), and the
+# README's "Sources and credits" section is generated from this file:  python -m freeplaylist credits
+#
+#   name, url:    who to credit and where
+#   provides:     what this project takes from them
+#   license:      the licence or legal basis that makes it free to use
+#   attribution:  the credit line they ask for (optional)
+#   note:         anything a user should know (optional)
+
+sources:
+  iptv-org:
+    name: iptv-org
+    url: https://github.com/iptv-org/iptv
+    provides: Database of publicly available live TV channels and streams (channels, streams, logos, blocklist)
+    license: Data published under the Unlicense (iptv-org/iptv and iptv-org/api)
+    note: >-
+      iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only
+      the streams its rules find official. Each channel belongs to its broadcaster; see credits.html for the list.
+
+  internet-archive:
+    name: Internet Archive
+    url: https://archive.org/
+    provides: >-
+      Public-domain and CC BY / BY-SA movies and TV episodes, their metadata and thumbnails (collections
+      feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger, classic_tv)
+    license: Public domain in the US, or the CC licence shown on each item; see each item's page
+    note: Files are streamed directly from archive.org. Consider donating at https://archive.org/donate
+
+  blender:
+    name: Blender Studio (Blender Foundation) open movies
+    url: https://studio.blender.org/films/
+    provides: Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel, Cosmos Laundromat, Spring, Sprite Fright, Wing It!, Caminandes
+    license: Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film)
+    attribution: "© Blender Foundation | studio.blender.org"
+    note: Streamed from the Internet Archive's copies.
+
+  nasa:
+    name: NASA
+    url: https://plus.nasa.gov/
+    provides: NASA's live stream
+    license: US government work, not subject to copyright in the US
+    note: NASA's name and logo are trademarks and are used only to identify the channel.
+
+  pluto-tv:
+    name: Pluto TV
+    url: https://pluto.tv/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners
+    note: >-
+      Linked through jmp2.uk, a third-party redirector used by iptv-org, not an official Pluto TV service.
+      Availability varies by country.
+
+  samsung-tv-plus:
+    name: Samsung TV Plus
+    url: https://www.samsungtvplus.com/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners
+    note: Some streams are linked through jmp2.uk, a third-party redirector. Availability varies by country.
+
+  plex:
+    name: Plex
+    url: https://www.plex.tv/live-tv/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from Plex; content and trademarks belong to Plex and its partners
+
+  roku-channel:
+    name: The Roku Channel
+    url: https://therokuchannel.roku.com/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners
+
+  tubi:
+    name: Tubi
+    url: https://tubitv.com/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from Tubi; content and trademarks belong to Tubi and its partners

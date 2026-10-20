@@ -1,0 +1,57 @@
+# TV shows with episodes in the US public domain, taken from the Internet Archive.
+#
+# Internet Archive's classic_tv collection also holds shows that are NOT public domain (for example BBC
+# programmes marked "public domain" by uploaders), so only the shows listed here are used, and each episode
+# must still carry a public-domain or CC BY / BY-SA licence on its item page.
+#
+# Before adding a show, check that its episodes (or the ones uploaded) really are public domain in the US,
+# usually because their copyright was never renewed, and record the basis. See CONTRIBUTING.md.
+#
+#   name:    show name, used for series-name and the "Series: <name>" group
+#   query:   Internet Archive search query
+#   match:   regex an item's identifier or title must match (also stripped from episode titles)
+#   basis:   why the episodes are public domain
+#   max_year: items dated later than this are skipped (the show's public-domain years)
+#   max:     cap on episodes (optional, default 300)
+
+shows:
+  - name: The Beverly Hillbillies
+    query: 'collection:(classic_tv) AND title:("Beverly Hillbillies")'
+    match: 'the beverly hillbillies|beverly[ _]hillbillies'
+    basis: Early episodes whose copyright was not renewed
+    max_year: 1971
+  - name: The Lucy Show
+    query: 'collection:(classic_tv) AND identifier:(TLS_*)'
+    match: '^TLS_|the lucy show'
+    basis: Episodes whose copyright was not renewed
+    max_year: 1968
+  - name: Bonanza
+    query: 'collection:(classic_tv) AND title:(Bonanza)'
+    match: 'bonanza'
+    basis: Episodes whose copyright was not renewed
+    max_year: 1973
+  - name: Sherlock Holmes (1954)
+    query: 'collection:(classic_tv) AND title:("Sherlock Holmes")'
+    match: 'sherlock[ _-]?holmes'
+    basis: 1954 series not renewed
+    max_year: 1955
+  - name: Dragnet
+    query: 'collection:(classic_tv) AND title:(Dragnet)'
+    match: 'dragnet'
+    basis: 1950s episodes whose copyright was not renewed
+    max_year: 1959
+  - name: You Bet Your Life
+    query: 'collection:(classic_tv) AND title:("You Bet Your Life")'
+    match: 'you[ _]bet[ _]your[ _]life'
+    basis: Episodes whose copyright was not renewed
+    max_year: 1961
+  - name: Tales of Tomorrow
+    query: 'collection:(classic_tv) AND title:("Tales of Tomorrow")'
+    match: 'tales[ _-]*of[ _-]*tomorrow'
+    basis: 1951-53 anthology, not renewed
+    max_year: 1953
+  - name: The Cisco Kid
+    query: 'collection:(classic_tv) AND title:("Cisco Kid")'
+    match: 'cisco[ _]kid'
+    basis: Episodes whose copyright was not renewed
+    max_year: 1956

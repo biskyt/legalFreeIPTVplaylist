@@ -1,0 +1,78 @@
+# Hand-picked items with a known licence. Each needs a `source` with an entry in credits.yaml.
+#
+# Internet Archive items (`ia:`) are resolved to their best MP4 file; the licence given here is used as-is.
+# Direct items (`url:`) are published as given (live streams are still health-checked).
+
+ia_movies:
+  # Blender Studio open movies (https://studio.blender.org/films/)
+  - ia: BigBuckBunny_124
+    title: Big Buck Bunny (2008)
+    year: 2008
+    license: CC BY 3.0
+    attribution: "© Blender Foundation | bigbuckbunny.org, CC BY 3.0"
+  - ia: ElephantsDream
+    title: Elephants Dream (2006)
+    year: 2006
+    license: CC BY 2.5
+    attribution: "© Blender Foundation | orange.blender.org, CC BY 2.5"
+  - ia: Sintel
+    title: Sintel (2010)
+    year: 2010
+    license: CC BY 3.0
+    attribution: "© Blender Foundation | durian.blender.org, CC BY 3.0"
+  - ia: Tears-of-Steel
+    title: Tears of Steel (2012)
+    year: 2012
+    license: CC BY 3.0
+    attribution: "© Blender Foundation | mango.blender.org, CC BY 3.0"
+  - ia: CosmosLaundromatFirstCycle
+    title: "Cosmos Laundromat: First Cycle (2015)"
+    year: 2015
+    license: CC BY 4.0
+    attribution: "© Blender Foundation | gooseberry.blender.org, CC BY 4.0"
+  - ia: spring_blenderopenmovie
+    title: Spring (2019)
+    year: 2019
+    license: CC BY 4.0
+    attribution: "© Blender Foundation | studio.blender.org, CC BY 4.0"
+  - ia: sprite-fright
+    title: Sprite Fright (2021)
+    year: 2021
+    license: CC BY 4.0
+    attribution: "© Blender Foundation | studio.blender.org, CC BY 4.0"
+  - ia: wing_it
+    title: Wing It! (2023)
+    year: 2023
+    license: CC BY 4.0
+    attribution: "© Blender Foundation | studio.blender.org, CC BY 4.0"
+  - ia: Caminandes1LlamaDrama
+    title: "Caminandes 1: Llama Drama (2013)"
+    year: 2013
+    license: CC BY 3.0
+    attribution: "© Blender Foundation | caminandes.com, CC BY 3.0"
+  - ia: Caminandes2GranDillama
+    title: "Caminandes 2: Gran Dillama (2013)"
+    year: 2013
+    license: CC BY 3.0
+    attribution: "© Blender Foundation | caminandes.com, CC BY 3.0"
+  - ia: CaminandesLlamigos
+    title: "Caminandes 3: Llamigos (2016)"
+    year: 2016
+    license: CC BY 3.0
+    attribution: "© Blender Foundation | caminandes.com, CC BY 3.0"
+
+ia_defaults:
+  group: "Movies: Open Movies"
+  source: blender
+  id_prefix: blender
+
+direct:
+  - id: nasa.live
+    title: NASA Live
+    kind: live
+    group: "Live: Science"
+    url: https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8
+    logo: https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo.svg
+    source: nasa
+    license: US government work, public domain
+    page: https://plus.nasa.gov/

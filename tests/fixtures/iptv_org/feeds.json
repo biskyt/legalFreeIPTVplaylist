@@ -1,0 +1,32 @@
+[
+ {
+  "channel": "DW.de",
+  "id": "SD",
+  "name": "SD",
+  "is_main": true
+ },
+ {
+  "channel": "Example.uk",
+  "id": "SD",
+  "name": "SD",
+  "is_main": true
+ },
+ {
+  "channel": "Example.uk",
+  "id": "HD",
+  "name": "HD",
+  "is_main": false
+ },
+ {
+  "channel": "Pluto1.us",
+  "id": "SD",
+  "name": "SD",
+  "is_main": true
+ },
+ {
+  "channel": "AlJazeera.qa",
+  "id": "English",
+  "name": "English",
+  "is_main": false
+ }
+]

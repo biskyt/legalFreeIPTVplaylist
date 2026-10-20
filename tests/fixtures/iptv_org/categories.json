@@ -1,0 +1,10 @@
+[
+ {
+  "id": "news",
+  "name": "News"
+ },
+ {
+  "id": "movies",
+  "name": "Movies"
+ }
+]
