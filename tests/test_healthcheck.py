@@ -78,3 +78,10 @@ def test_vod_kept_when_server_gives_no_answer(entry):
 def test_live_server_errors_still_drop_new_streams(entry):
     kept, _, _ = run([entry(url="https://live/x.m3u8")], {"https://live/x.m3u8": (503, b"")})
     assert not kept
+
+
+def test_previously_failed_vod_always_rechecked(entry):
+    failed = entry(id="failed", kind="movie", url="https://ia/failed.mp4")
+    state = {"https://ia/failed.mp4": {"fails": 1}}
+    kept, reasons, _ = run([failed], {"https://ia/failed.mp4": (200, b"\x00\x00\x00 ftyp")}, state, sample=0.0)
+    assert [e.id for e in kept] == ["failed"] and reasons["failed"] == "ok"

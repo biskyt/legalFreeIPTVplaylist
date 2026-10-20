@@ -109,7 +109,10 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
     rng = rng or random.Random()
 
     def wanted(e: Entry) -> bool:
-        return sample >= 1 or any(c["url"] not in state for c in _candidates(e)) or rng.random() < sample
+        # Always check what is new, failed last time, or never confirmed working; sample the rest.
+        unsure = any(not (state.get(c["url"]) or {}).get("ok") or state[c["url"]].get("fails")
+                     for c in _candidates(e))
+        return sample >= 1 or unsure or rng.random() < sample
 
     def task(e: Entry) -> tuple[Entry | None, Decision, list[tuple[str, Result]]]:
         tried: list[tuple[dict, Result]] = []
