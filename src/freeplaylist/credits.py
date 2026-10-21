@@ -26,7 +26,7 @@ def readme_section(sources: dict) -> str:
         rows.append(f"| [{_md(s['name'])}]({s['url']}) | {_md(s['provides'])} | {_md(s['license'])} | {_md(notes)} |")
     rows.append("")
     rows.append("Every live channel belongs to its broadcaster. The full list of broadcasters, with links, is "
-                "published with each build in [credits.html](https://biskyt.github.io/licenseFreeIPTVplaylist/credits.html).")
+                "published with each build in [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html).")
     return "\n".join(rows)
 
 

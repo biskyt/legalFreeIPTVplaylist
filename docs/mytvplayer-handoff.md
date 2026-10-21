@@ -8,7 +8,7 @@ A brief for implementing [FORMAT.md](../FORMAT.md) (the open M3U VOD convention)
 
 Movies and series in an M3U playlist should appear in MyTVPlayer's **Movies** and **Series** sections, the same
 way they do for Xtream accounts, **without changing behaviour for any existing provider M3U**. Test playlist:
-`https://biskyt.github.io/licenseFreeIPTVplaylist/playlist.m3u`.
+`https://biskyt.github.io/legalFreeIPTVplaylist/playlist.m3u`.
 
 ## Current state
 

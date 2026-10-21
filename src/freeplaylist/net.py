@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
-USER_AGENT = "freeplaylist/0.1 (+https://github.com/biskyt/licenseFreeIPTVplaylist)"
+USER_AGENT = "freeplaylist/0.1 (+https://github.com/biskyt/legalFreeIPTVplaylist)"
 # Some streaming servers refuse unknown clients; probes look like an ordinary player.
 PLAYER_AGENT = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 

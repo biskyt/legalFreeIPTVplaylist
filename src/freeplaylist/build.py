@@ -16,8 +16,8 @@ from .models import Decision, Entry
 from .sources import curated, internet_archive, iptv_org
 
 log = logging.getLogger("freeplaylist")
-PAGES = "https://biskyt.github.io/licenseFreeIPTVplaylist"
-REPO = "https://github.com/biskyt/licenseFreeIPTVplaylist"
+PAGES = "https://biskyt.github.io/legalFreeIPTVplaylist"
+REPO = "https://github.com/biskyt/legalFreeIPTVplaylist"
 
 
 class BuildError(Exception):
@@ -171,11 +171,11 @@ def index_html(built: dict[str, feeds.Feed]) -> str:
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Free IPTV playlist</title>
+<title>Legal free IPTV playlist</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:50rem;margin:auto;padding:1rem;line-height:1.5}}
 table{{border-collapse:collapse}}td,th{{border-bottom:1px solid #ccc;padding:.3rem .8rem;text-align:left}}</style>
 </head><body>
-<h1>Free IPTV playlist</h1>
+<h1>Legal free IPTV playlist</h1>
 <p>Legally free live TV, FAST channels, public-domain and openly licensed movies and series, as M3U playlists.
 Rebuilt daily. This site only links to streams; it hosts no video.</p>
 <table><thead><tr><th>Playlist</th><th>Contents</th><th>Entries</th></tr></thead><tbody>{rows}</tbody></table>

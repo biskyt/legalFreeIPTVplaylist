@@ -1,4 +1,4 @@
-# Free IPTV playlist
+# Legal free IPTV playlist
 
 M3U playlists of **legally free** live TV, free ad-supported (FAST) channels, and public-domain or openly
 licensed movies and TV series, for any IPTV app. A GitHub Action rebuilds them every day and publishes them to
@@ -13,11 +13,11 @@ useful to anyone who wants free TV without a subscription.
 
 | URL | Contents |
 |---|---|
-| `https://biskyt.github.io/licenseFreeIPTVplaylist/playlist.m3u` | Everything: live, movies and series |
-| `https://biskyt.github.io/licenseFreeIPTVplaylist/live.m3u` | Live TV and FAST channels |
-| `https://biskyt.github.io/licenseFreeIPTVplaylist/vod.m3u` | Movies and series |
-| `https://biskyt.github.io/licenseFreeIPTVplaylist/movies.m3u` | Movies only |
-| `https://biskyt.github.io/licenseFreeIPTVplaylist/series.m3u` | Series only |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/playlist.m3u` | Everything: live, movies and series |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/live.m3u` | Live TV and FAST channels |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/vod.m3u` | Movies and series |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/movies.m3u` | Movies only |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/series.m3u` | Series only |
 
 Use `playlist.m3u` in apps that understand our [movie and series convention](FORMAT.md). Apps that take one
 playlist per content type can use the separate feeds instead. Any app can play every entry: apps that don't
@@ -28,9 +28,9 @@ example from [iptv-epg.org](https://iptv-epg.org) or the
 [iptv-org/epg](https://github.com/iptv-org/epg) grabber) match them. A published guide is planned.
 
 Each build also publishes:
-- [`catalog.json`](https://biskyt.github.io/licenseFreeIPTVplaylist/catalog.json): descriptions, licences and source pages;
-- [`report.json`](https://biskyt.github.io/licenseFreeIPTVplaylist/report.json): what was accepted or rejected, and why;
-- [`credits.html`](https://biskyt.github.io/licenseFreeIPTVplaylist/credits.html): every broadcaster.
+- [`catalog.json`](https://biskyt.github.io/legalFreeIPTVplaylist/catalog.json): descriptions, licences and source pages;
+- [`report.json`](https://biskyt.github.io/legalFreeIPTVplaylist/report.json): what was accepted or rejected, and why;
+- [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html): every broadcaster.
 
 ## What's included, and why it's legal
 
@@ -86,7 +86,7 @@ their streams to certain countries.
 | [The Roku Channel](https://therokuchannel.roku.com/) | Free, ad-supported (FAST) channels | Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners |  |
 | [Tubi](https://tubitv.com/) | Free, ad-supported (FAST) channels | Free to watch from Tubi; content and trademarks belong to Tubi and its partners |  |
 
-Every live channel belongs to its broadcaster. The full list of broadcasters, with links, is published with each build in [credits.html](https://biskyt.github.io/licenseFreeIPTVplaylist/credits.html).
+Every live channel belongs to its broadcaster. The full list of broadcasters, with links, is published with each build in [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html).
 <!-- credits:end -->
 
 This table is generated from [`config/credits.yaml`](config/credits.yaml). Every source the build uses must
@@ -95,7 +95,7 @@ have an entry there; the build and the tests fail otherwise.
 ## Takedowns and corrections
 
 If something here shouldn't be (a stream that isn't official, a film that isn't public domain, or anything
-else), please [open an issue](https://github.com/biskyt/licenseFreeIPTVplaylist/issues). It will be removed from
+else), please [open an issue](https://github.com/biskyt/legalFreeIPTVplaylist/issues). It will be removed from
 the next build. Rights holders can expect removal without discussion.
 
 ## Building it yourself
