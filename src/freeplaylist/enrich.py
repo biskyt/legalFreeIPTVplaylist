@@ -61,8 +61,9 @@ def load(state: dict) -> dict[str, dict[str, dict]]:
     return {name: (state.get(name) or {}).get("rows", {}) for name in LINKS}
 
 
-def poster_url(commons_file_url: str, width: int = 400) -> str:
-    """A thumbnail of a Commons image, via Special:FilePath."""
+def poster_url(commons_file_url: str, width: int = 500) -> str:
+    """A thumbnail of a Commons image, via Special:FilePath. 500px is one of Wikimedia's standard thumbnail sizes,
+    which its robot policy asks for (others are made on demand)."""
     return f"{commons_file_url.replace('http://', 'https://', 1)}?width={width}"
 
 

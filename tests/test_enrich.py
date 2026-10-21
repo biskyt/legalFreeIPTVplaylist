@@ -12,7 +12,7 @@ def test_apply_matches_by_source_item(entry):
     }
     assert enrich.apply([ia, commons, other], tables) == 2
     assert (ia.tmdb, ia.imdb) == ("10331", "tt0063350")
-    assert ia.logo == "https://commons.wikimedia.org/wiki/Special:FilePath/P.jpg?width=400"
+    assert ia.logo == "https://commons.wikimedia.org/wiki/Special:FilePath/P.jpg?width=500"
     assert commons.tmdb == "10098" and other.tmdb is None
 
 
