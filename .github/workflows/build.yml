@@ -40,11 +40,18 @@ jobs:
       # state/ (each source's snapshot, stream health and other caches) lives on the `state` branch as one
       # compressed file: free, permanent, and replaced each night by a single commit, so the repo doesn't grow.
       - name: Restore state
+        id: restore
         run: |
-          if git fetch --depth 1 origin state; then
+          # Exit code 2 means the branch doesn't exist (first run). Any other failure stops the job rather than
+          # starting empty, which would later overwrite the saved state with a partial one.
+          set +e; git ls-remote --exit-code --heads origin state > /dev/null; found=$?; set -e
+          if [ "$found" = 2 ]; then
+            echo "no saved state yet: this run harvests everything"
+          elif [ "$found" = 0 ]; then
+            git fetch --depth 1 origin state
             git show FETCH_HEAD:state.tar.gz | tar -xz
           else
-            echo "no saved state yet: this run harvests everything"
+            echo "couldn't check for saved state (exit $found)"; exit 1
           fi
 
       # Fails (and leaves the previously deployed site live) if any feed is broken or too small.
@@ -77,7 +84,7 @@ jobs:
           if [ -f state/epg.xml.gz ]; then cp state/epg.xml.gz site/epg.xml.gz; else echo "no guide yet"; fi
 
       - name: Save state
-        if: always() && hashFiles('state/**') != ''
+        if: always() && steps.restore.outcome == 'success' && hashFiles('state/**') != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

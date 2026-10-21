@@ -35,8 +35,8 @@ def test_harvest_and_build():
     assert (e.duration, e.languages, e.countries) == (723, ["nld"], ["NL"])
     assert e.page == "https://www.openbeelden.nl/media/1" and "Polygoon" in e.attribution
     assert {d.item: d.reason for d in decisions}["oai:openimages.eu:3"] == "license:restricted"
-    assert state["last"] and state["years"][0] == 2007  # all year windows done: changes only from now on
-    assert "from=2007-01-01&until=2007-12-31" in urls[0]
+    assert state["last"] and state["months"][0] == "2007-01"  # all month windows done: changes only from now on
+    assert "from=2007-01-01&until=2007-01-31" in urls[0]
 
 
 def test_page_budget_spreads_first_harvest_over_runs():
@@ -44,9 +44,17 @@ def test_page_budget_spreads_first_harvest_over_runs():
     one = page([RECORD.format(id=1, title="Lang", extent="PT12M3S", lic=pd)])
     state = {}
     ob.harvest(state, lambda url, **kw: one, pause=0, max_pages=3)
-    assert state["years"] == [2007, 2008, 2009] and "last" not in state
-    ob.harvest(state, lambda url, **kw: one, pause=0, max_pages=100)
+    assert state["months"] == ["2007-01", "2007-02", "2007-03"] and "last" not in state
+    ob.harvest(state, lambda url, **kw: one, pause=0, max_pages=1000)
     assert "last" in state
+
+
+def test_expired_token_is_not_taken_as_done():
+    expired = (b'<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">'
+               b'<error code="badResumptionToken">gone</error></OAI-PMH>')
+    state = {}
+    ob.harvest(state, lambda url, **kw: expired, pause=0, max_pages=5)
+    assert state["months"] == [] and "last" not in state
 
 
 def test_seconds():

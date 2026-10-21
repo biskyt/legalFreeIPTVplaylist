@@ -38,7 +38,7 @@ def fetch(query: str, limit: int) -> list[dict]:
     params = {
         "action": "query", "format": "json", "formatversion": "2", "generator": "search", "gsrnamespace": "6",
         "gsrlimit": "50", "gsrsearch": query, "prop": "videoinfo|categories", "cllimit": "max", "clshow": "!hidden",
-        "viprop": "url|size|mediatype|derivatives|extmetadata",
+        "viprop": "url|size|mediatype|derivatives|extmetadata", "viurlwidth": "400",  # thumburl: a 400px still
         "viextmetadatafilter": "LicenseShortName|LicenseUrl|Artist|ObjectName|DateTimeOriginal|ImageDescription",
     }
     cont: dict = {}

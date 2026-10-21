@@ -96,3 +96,10 @@ def test_malformed_variant_url_is_dead_not_a_crash(entry):
     bad = b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhttp://[broken/index.m3u8\n"
     kept, reasons, _ = run([entry(id="bad", url="https://a/master.m3u8")], {"https://a/master.m3u8": (200, bad)})
     assert not kept and "bad URL" in reasons["bad"]
+
+
+def test_grace_stream_rechecked_next_night_even_if_not_due(entry):
+    e = entry(id="flaky", url="https://x/flaky.m3u8")
+    state = {"https://x/flaky.m3u8": {"ok": "2026-10-19", "fails": 1}}
+    kept, reasons, state = run([e], {}, state, due=lambda e: False)
+    assert not kept and reasons["flaky"].startswith("dead")  # confirmed dead the next night, not a week later

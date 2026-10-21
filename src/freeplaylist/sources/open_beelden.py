@@ -7,6 +7,7 @@ ask for records changed since the last one.
 
 from __future__ import annotations
 
+import calendar
 import logging
 import re
 import time
@@ -75,8 +76,12 @@ def _pages(params: dict, records: dict, fetch, pause: float, budget: list[int]) 
             return False
         budget[0] -= 1
         root = ET.fromstring(fetch(url, timeout=90, retries=2))
-        if root.find("o:error", NS) is not None:  # noRecordsMatch
-            return True
+        error = root.find("o:error", NS)
+        if error is not None:
+            if error.get("code") == "noRecordsMatch":  # an empty window: done
+                return True
+            # Anything else (e.g. an expired resumption token) means this window wasn't finished.
+            raise RuntimeError(f"OAI-PMH {error.get('code')}: {(error.text or '').strip()}")
         for rec in root.iterfind(".//o:record", NS):
             ident, fields = parse_record(rec)
             if fields is None:
@@ -91,17 +96,22 @@ def _pages(params: dict, records: dict, fetch, pause: float, budget: list[int]) 
     return True
 
 
+def _months(first_year: int, today: datetime) -> list[str]:
+    return [f"{y}-{m:02d}" for y in range(first_year, today.year + 1) for m in range(1, 13)
+            if (y, m) <= (today.year, today.month)]
+
+
 def harvest(state: dict, fetch=net.get_bytes, pause: float = 1.0, max_pages: int = 30,
             first_year: int = 2007) -> dict:
     """Bring state["records"] up to date within a page budget.
 
     The feed is slow (sometimes most of a minute per 100 records) and its resumption tokens expire, so the
-    first harvest goes one year of record dates at a time, remembering finished years in state["years"], and
-    continues on later runs. Once every year is done, runs only ask for records changed since the last one.
+    first harvest goes one month of record dates at a time, remembering finished months in state["months"], and
+    continues on later runs. Once every month is done, runs only ask for records changed since the last one.
     A failure keeps what arrived; the next run carries on.
     """
     records = state.setdefault("records", {})
-    done = set(state.setdefault("years", []))
+    done = set(state.setdefault("months", []))
     today = datetime.now(UTC)
     budget = [max_pages]
     try:
@@ -110,18 +120,20 @@ def harvest(state: dict, fetch=net.get_bytes, pause: float = 1.0, max_pages: int
                       pause, budget):
                 state["last"] = today.strftime("%Y-%m-%d")
             return state
-        for year in range(first_year, today.year + 1):
-            if year in done:
+        for month in _months(first_year, today):
+            if month in done:
                 continue
-            window = {"verb": "ListRecords", "metadataPrefix": "oai_oi", "from": f"{year}-01-01",
-                      "until": f"{year}-12-31"}
+            year, m = map(int, month.split("-"))
+            last_day = calendar.monthrange(year, m)[1]
+            window = {"verb": "ListRecords", "metadataPrefix": "oai_oi", "from": f"{month}-01",
+                      "until": f"{month}-{last_day:02d}"}
             if not _pages(window, records, fetch, pause, budget):
                 log.info("open beelden: page budget used; %d records so far, continuing next run", len(records))
                 return state
-            done.add(year)
-            state["years"] = sorted(done)
-        state["last"] = today.strftime("%Y-%m-%d")  # every year harvested: from now on, changes only
-    except Exception as e:  # noqa: BLE001 - use what we have; the next run continues
+            done.add(month)
+            state["months"] = sorted(done)
+        state["last"] = today.strftime("%Y-%m-%d")  # every month harvested: from now on, changes only
+    except Exception as e:  # noqa: BLE001 - use what we have; the next run carries on
         log.warning("open beelden: harvest stopped (%s); using %d records", e, len(records))
     return state
 

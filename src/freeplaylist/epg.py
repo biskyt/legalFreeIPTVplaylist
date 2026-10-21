@@ -113,51 +113,56 @@ def _stop_time(value: str) -> float:
 
 
 class Merger:
-    """Collects channels and programmes from several XMLTV files under our ids; the first source to cover a
-    channel wins, so a channel never gets two overlapping guides. Programmes go straight to a temporary file,
-    so memory holds only the channel list, however big the guides are."""
+    """Collects channels and programmes from several XMLTV files under our ids. The first source to supply
+    current programmes for a channel owns it, so a channel never gets two overlapping guides. A source's
+    programmes are kept only if its whole file parses; they go to a temporary file, so memory holds only the
+    channel list, however big the guides are."""
 
     def __init__(self, now: float | None = None):
         self.now = now or time.time()
         self.channels: dict[str, bytes] = {}
         self.owner: dict[str, str] = {}
-        self.covered: set[str] = set()
         self._programmes = tempfile.TemporaryFile()  # noqa: SIM115 - spans add() calls; closed by write()
 
     def add(self, source: str, data: bytes, ids: dict[str, list[str]]) -> int:
-        """Add one XMLTV document; `ids` maps its channel ids to ours. Returns how many channels it covered."""
-        added: set[str] = set()
-        for _, el in ET.iterparse(io.BytesIO(data), events=("end",)):
-            if el.tag == "channel":
-                for ours in self._ours(source, el.get("id", ""), ids):
-                    el.set("id", ours)
-                    self.channels.setdefault(ours, ET.tostring(el, encoding="utf-8"))
-                el.clear()
-            elif el.tag == "programme":
-                ours_list = self._ours(source, el.get("channel", ""), ids)
-                if ours_list and _stop_time(el.get("stop", "")) > self.now:
-                    for ours in ours_list:
-                        el.set("channel", ours)
-                        self._programmes.write(ET.tostring(el, encoding="utf-8"))
-                        added.add(ours)
-                el.clear()
-        self.covered |= added
-        return len(added)
+        """Add one XMLTV document; `ids` maps its channel ids to ours. Returns how many channels it now owns."""
+        channels: dict[str, bytes] = {}
+        claimed: set[str] = set()
+        with tempfile.TemporaryFile() as buf:
+            for _, el in ET.iterparse(io.BytesIO(data), events=("end",)):
+                if el.tag == "channel":
+                    for ours in self._free(el.get("id", ""), ids):
+                        el.set("id", ours)
+                        channels.setdefault(ours, ET.tostring(el, encoding="utf-8"))
+                    el.clear()
+                elif el.tag == "programme":
+                    if _stop_time(el.get("stop", "")) > self.now:
+                        for ours in self._free(el.get("channel", ""), ids):
+                            el.set("channel", ours)
+                            buf.write(ET.tostring(el, encoding="utf-8"))
+                            claimed.add(ours)
+                    el.clear()
+            buf.seek(0)
+            shutil.copyfileobj(buf, self._programmes)
+        for ours in claimed:
+            self.owner[ours] = source
+            self.channels[ours] = channels.get(ours) or (
+                f'<channel id={quoteattr(ours)}><display-name>{escape(ours)}</display-name></channel>'.encode())
+        return len(claimed)
 
-    def _ours(self, source: str, theirs: str, ids: dict[str, list[str]]) -> list[str]:
-        return [ours for ours in ids.get(theirs, []) if self.owner.setdefault(ours, source) == source]
+    def _free(self, theirs: str, ids: dict[str, list[str]]) -> list[str]:
+        return [ours for ours in ids.get(theirs, []) if ours not in self.owner]
 
     def write(self, path: Path) -> int:
         with gzip.open(path, "wb") as f:
             f.write(b'<?xml version="1.0" encoding="UTF-8"?>\n<tv generator-info-name="freeplaylist">\n')
-            for c in self.channels:
-                if c in self.covered:
-                    f.write(self.channels[c])
+            for element in self.channels.values():
+                f.write(element)
             self._programmes.seek(0)
             shutil.copyfileobj(self._programmes, f)
             f.write(b"</tv>\n")
         self._programmes.close()
-        return len(self.covered & set(self.channels))
+        return len(self.channels)
 
 
 def merge(state_dir: Path, out: Path, grabbed: Path | None = None) -> int:

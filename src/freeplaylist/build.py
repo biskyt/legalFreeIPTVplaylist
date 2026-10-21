@@ -149,7 +149,8 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
 
 
 def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], list[Decision]]:
-    api = iptv_org.fetch_api(opts.api_dir)
+    # Language and country names were already fetched (and loaded) by collect().
+    api = iptv_org.fetch_api(opts.api_dir, tuple(f for f in iptv_org.FILES if f not in ("languages", "countries")))
     hosts_cfg = load("live_hosts")
     rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
     site_links = None
@@ -169,7 +170,9 @@ def _title_key(e: Entry) -> tuple | None:
     if e.kind != "movie" or not e.year:
         return None
     title = re.sub(r"\s*\(\d{4}\)$", "", e.title).lower()
-    return re.sub(r"^(the|a|an) ", "", re.sub(r"[^a-z0-9 ]", "", title)).strip(), e.year
+    # Letters and digits in any script, so "Цирк" keeps its own key instead of collapsing to "".
+    key = re.sub(r"^(the|a|an) ", "", " ".join(re.sub(r"[^\w ]|_", " ", title).split()))
+    return (key, e.year) if key else None
 
 
 def _dedupe(entries: list[Entry]) -> tuple[list[Entry], list[Decision]]:

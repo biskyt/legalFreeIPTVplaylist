@@ -111,8 +111,13 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[E
     today = today or date.today().isoformat()
     due = due or (lambda e: True)
 
+    def in_grace(rec: dict) -> bool:
+        return bool(rec.get("ok")) and 0 < rec.get("fails", 0) < MAX_FAILS
+
     def wanted(e: Entry) -> bool:
-        return any(c["url"] not in state for c in candidates(e)) or due(e)
+        # New streams, and working ones that just failed once (their grace run), are checked the very next night;
+        # the rest wait for their turn.
+        return any(c["url"] not in state or in_grace(state[c["url"]]) for c in candidates(e)) or due(e)
 
     def task(e: Entry) -> tuple[Entry | None, Decision, list[tuple[str, Result]]]:
         tried: list[tuple[dict, Result]] = []

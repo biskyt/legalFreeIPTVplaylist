@@ -22,8 +22,10 @@ def save(state_dir: Path, source: str, entries: list[Entry], decisions: list[Dec
 
 
 def load(state_dir: Path, source: str) -> tuple[list[Entry], list[Decision], str] | None:
+    """A source's snapshot, or None if there isn't a usable one (then the source is simply harvested again)."""
     data = config.load_state(state_dir / "snapshots" / f"{source}.json")
-    if "entries" not in data:
+    try:
+        return ([Entry(**e) for e in data["entries"]], [Decision(**d) for d in data.get("decisions", [])],
+                data.get("day", "?"))
+    except (KeyError, TypeError):  # none yet, or written by an older version with different fields
         return None
-    return ([Entry(**e) for e in data["entries"]], [Decision(**d) for d in data.get("decisions", [])],
-            data.get("day", "?"))

@@ -1,6 +1,9 @@
 import gzip
 import json
+import xml.etree.ElementTree as ET
 from datetime import date
+
+import pytest
 
 from freeplaylist import epg, net, schedule
 
@@ -66,3 +69,22 @@ def test_merge_saves_tonights_group_and_combines(tmp_path, monkeypatch):
     monkeypatch.setattr(epg, "_download", lambda url: doc("3sat.de", "Fast"))
     assert epg.merge(tmp_path, tmp_path / "site" / "epg.xml.gz", grabbed) == 3
     assert (folder / "group-2.xml.gz").exists()
+
+
+def test_listing_without_current_programmes_doesnt_block_a_later_source(tmp_path):
+    m = epg.Merger(now=1_800_000_000)
+    empty = b'<tv><channel id="X"><display-name>X</display-name></channel></tv>'
+    assert m.add("iptv-epg.org", empty, {"X": ["X.us@SD"]}) == 0
+    assert m.add("grabber", doc("X.us@SD", "Grabbed"), {"X.us@SD": ["X.us@SD"]}) == 1
+
+
+def test_broken_source_leaves_nothing_behind(tmp_path):
+    m = epg.Merger(now=1_800_000_000)
+    broken = doc("3sat.de", "Partial").replace(b"</tv>", b"<programme")
+    with pytest.raises(ET.ParseError):
+        m.add("iptv-epg.org", broken, {"3sat.de": ["3sat.de@SD"]})
+    assert m.add("grabber", doc("3sat.de@SD", "Whole"), {"3sat.de@SD": ["3sat.de@SD"]}) == 1
+    out = tmp_path / "g.xml.gz"
+    m.write(out)
+    text = gzip.decompress(out.read_bytes()).decode()
+    assert ">Whole<" in text and ">Partial<" not in text
