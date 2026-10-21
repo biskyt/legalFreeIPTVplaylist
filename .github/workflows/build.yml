@@ -4,12 +4,17 @@ on:
   schedule:
     - cron: "17 4 * * *"   # daily, 04:17 UTC
   workflow_dispatch:
+    inputs:
+      full:
+        description: "Harvest and check everything now, ignoring the nightly schedule (slow)"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ["src/**", "config/**", "pyproject.toml", ".github/workflows/build.yml"]
 
 permissions:
-  contents: read
+  contents: write   # to save state/ on the `state` branch
   pages: write
   id-token: write
 
@@ -20,7 +25,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,15 +34,19 @@ jobs:
           cache: pip
       - run: pip install -e .
 
-      # Internet Archive metadata and stream health, kept between runs.
-      - uses: actions/cache/restore@v4
-        with:
-          path: state
-          key: state-${{ github.run_id }}
-          restore-keys: state-
+      # state/ (each source's snapshot, stream health and other caches) lives on the `state` branch as one
+      # compressed file: free, permanent, and replaced each night by a single commit, so the repo doesn't grow.
+      - name: Restore state
+        run: |
+          if git fetch --depth 1 origin state; then
+            git show FETCH_HEAD:state.tar.gz | tar -xz
+          else
+            echo "no saved state yet: this run harvests everything"
+          fi
 
       # Fails (and leaves the previously deployed site live) if any feed is broken or too small.
-      - run: python -m freeplaylist build --out site --state state
+      # Only tonight's share of sources and stream checks runs (config/schedule.yaml); the rest come from state/.
+      - run: python -m freeplaylist build --out site --state state ${{ inputs.full && '--all' || '' }}
 
       # TV guide: iptv-org's grabber fetches the channels the build listed in state/epg.channels.xml. If it fails
       # or runs out of time, the previous guide (kept in state/) is published instead, so playlists still deploy.
@@ -58,11 +67,19 @@ jobs:
         run: |
           if [ -f state/epg.xml.gz ]; then cp state/epg.xml.gz site/epg.xml.gz; else echo "no guide yet"; fi
 
-      - uses: actions/cache/save@v4
-        if: always() && hashFiles('state/*') != ''
-        with:
-          path: state
-          key: state-${{ github.run_id }}
+      - name: Save state
+        if: always() && hashFiles('state/**') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/state-branch"
+          tar -czf "$RUNNER_TEMP/state-branch/state.tar.gz" state
+          cd "$RUNNER_TEMP/state-branch"
+          git init -q -b state
+          git add state.tar.gz
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Build state from run ${{ github.run_id }}"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" state
 
       - uses: actions/upload-pages-artifact@v3
         with:

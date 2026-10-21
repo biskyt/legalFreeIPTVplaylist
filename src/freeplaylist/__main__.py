@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--no-website-check", action="store_true", help="don't fetch broadcasters' websites")
     b.add_argument("--live-only", action="store_true")
     b.add_argument("--vod-only", action="store_true")
-    b.add_argument("--vod-sample", type=float, default=0.05, help="share of known VOD entries re-checked")
+    b.add_argument("--all", action="store_true", help="harvest and check everything, ignoring config/schedule.yaml")
     b.add_argument("--no-minimums", action="store_true", help="don't fail on small feeds (partial builds)")
 
     c = sub.add_parser("credits", help="regenerate the README credits section from config/credits.yaml")
@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     opts = build.Options(
         out=args.out, state_dir=args.state, api_dir=args.api_dir, health=not args.no_health,
         website_check=not args.no_website_check,
-        live=not args.vod_only, vod=not args.live_only, vod_sample=args.vod_sample,
+        live=not args.vod_only, vod=not args.live_only, all=args.all,
         enforce_minimums=not (args.no_minimums or args.live_only or args.vod_only),
     )
     try:

@@ -6,15 +6,15 @@ Results are remembered in state/health.json:
   * a stream that has never been seen working is dropped as soon as it fails;
   * a stream that worked before gets one grace run, and is dropped after 2 consecutive failures;
   * a 401/403/451 on a stream iptv-org labels "Geo-blocked" is kept, as the build runs from a US data centre.
-Only a sample of VOD entries (plus all new ones) is checked each run; archive.org files rarely disappear, and a
-VOD entry is only dropped for a definite answer (such as 404), not for a timeout or server error, which archive.org
-returns at busy times.
+Not every stream is checked every night (see config/schedule.yaml): new streams always are, the rest when
+their turn comes, and in between each keeps the result of its last check. A VOD entry is only dropped for a
+definite answer (such as 404), not for a timeout or server error, which archive.org returns at busy times.
 """
 
 from __future__ import annotations
 
-import random
 import urllib.parse
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date
@@ -95,18 +95,19 @@ def _candidates(e: Entry) -> list[dict]:
     ]
 
 
-def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 1.0, today: str | None = None,
-        rng: random.Random | None = None, keep_on_error: bool = False) -> tuple[list[Entry], list[Decision]]:
-    """Entries that pass (in the same order), and a decision for every entry that was checked.
-    With keep_on_error, an entry whose checks all ended without a definite answer is kept unchanged."""
+def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[Entry], bool] | None = None,
+        today: str | None = None, keep_on_error: bool = False) -> tuple[list[Entry], list[Decision]]:
+    """Entries that pass (in the same order), and a decision for every entry checked or dropped.
+
+    An entry is checked when any of its streams is new, or when `due(entry)` says it's its turn (every entry by
+    default). Every other entry is judged on its last check: kept if a stream last worked (or, with
+    keep_on_error, last gave no definite answer), dropped if it was last found dead.
+    With keep_on_error, an entry whose checks all end without a definite answer is kept unchanged."""
     today = today or date.today().isoformat()
-    rng = rng or random.Random()
+    due = due or (lambda e: True)
 
     def wanted(e: Entry) -> bool:
-        # Always check what is new, failed last time, or never confirmed working; sample the rest.
-        unsure = any(not (state.get(c["url"]) or {}).get("ok") or state[c["url"]].get("fails")
-                     for c in _candidates(e))
-        return sample >= 1 or unsure or rng.random() < sample
+        return any(c["url"] not in state for c in _candidates(e)) or due(e)
 
     def task(e: Entry) -> tuple[Entry | None, Decision, list[tuple[str, Result]]]:
         tried: list[tuple[dict, Result]] = []
@@ -121,7 +122,7 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
         if geo is not None:
             return _use(e, geo), Decision("health", e.id, True, "geo-blocked"), _urls(tried)
         if keep_on_error and tried and all(r.status == "error" for _, r in tried):
-            return e, Decision("health", e.id, True, f"unconfirmed: {tried[0][1].detail}"), []
+            return e, Decision("health", e.id, True, f"unconfirmed: {tried[0][1].detail}"), _urls(tried)
         # Grace for a stream that worked last time: keep it unless it has now failed MAX_FAILS runs in a row.
         for c, _ in tried:
             rec = state.get(c["url"]) or {}
@@ -129,6 +130,19 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
                 return _use(e, c), Decision("health", e.id, True, "grace"), _urls(tried)
         detail = tried[0][1].detail if tried else ""
         return None, Decision("health", e.id, False, f"dead: {detail}".strip()), _urls(tried)
+
+    def cached(e: Entry) -> Entry | None:
+        """The entry with its best stream by the last check, or None if that check found them all dead."""
+        for c in _candidates(e):
+            rec = state.get(c["url"]) or {}
+            if rec.get("ok") and rec.get("fails", 0) < MAX_FAILS:
+                return _use(e, c)
+        if keep_on_error:
+            for c in _candidates(e):
+                rec = state.get(c["url"]) or {}
+                if rec.get("unconfirmed") and not rec.get("fails"):
+                    return _use(e, c)
+        return None
 
     # One host after another, so the workers spread over many servers instead of queueing on one.
     checked = net.round_robin((e for e in entries if wanted(e)), key=lambda e: net.host_of(_candidates(e)[0]["url"]))
@@ -138,16 +152,23 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
     kept, decisions = [], []
     for e in entries:
         if id(e) not in outcomes:
-            kept.append(e)
+            last = cached(e)
+            if last is not None:
+                kept.append(last)
+            else:
+                decisions.append(Decision("health", e.id, False, "dead at last check"))
             continue
         new, decision, tried = outcomes[id(e)]
         decisions.append(decision)
         for url, r in tried:
             rec = state.setdefault(url, {})
-            if r.status in ("dead", "error"):
+            if r.status == "dead" or (r.status == "error" and not keep_on_error):
                 rec["fails"] = rec.get("fails", 0) + 1
+            elif r.status == "error":
+                rec["unconfirmed"] = today  # no definite answer: neither working nor dead
             else:
                 rec.update(ok=today, fails=0)
+                rec.pop("unconfirmed", None)
         if new is not None:
             kept.append(new)
     return kept, decisions

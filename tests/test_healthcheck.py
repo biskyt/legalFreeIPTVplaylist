@@ -57,13 +57,23 @@ def test_never_working_stream_dropped_at_once(entry):
     assert not kept
 
 
-def test_mp4_and_sampling(entry):
+def test_only_new_or_due_entries_are_checked(entry):
     known = entry(id="known", kind="movie", url="https://ia/known.mp4")
     new = entry(id="new", kind="movie", url="https://ia/new.mp4")
     state = {"https://ia/known.mp4": {"ok": "2026-10-01", "fails": 0}}
-    kept, reasons, _ = run([known, new], {"https://ia/new.mp4": (200, b"\x00\x00\x00 ftyp")}, state, sample=0.0)
+    kept, reasons, _ = run([known, new], {"https://ia/new.mp4": (200, b"\x00\x00\x00 ftyp")}, state,
+                           due=lambda e: False)
     assert [e.id for e in kept] == ["known", "new"]
-    assert set(reasons) == {"new"}  # the known entry wasn't sampled
+    assert set(reasons) == {"new"}  # the known entry wasn't due, so it kept its last result
+
+
+def test_not_due_entry_last_found_dead_stays_out(entry):
+    e = entry(id="dead", url="https://x/dead.m3u8")
+    state = {"https://x/dead.m3u8": {"fails": 1}}
+    kept, reasons, _ = run([e], {"https://x/dead.m3u8": (200, MEDIA)}, state, due=lambda e: False)
+    assert not kept and reasons["dead"] == "dead at last check"
+    kept, _, _ = run([e], {"https://x/dead.m3u8": (200, MEDIA)}, state)  # its turn: back when it works
+    assert kept
 
 
 def test_vod_kept_when_server_gives_no_answer(entry):
@@ -72,16 +82,11 @@ def test_vod_kept_when_server_gives_no_answer(entry):
     kept, reasons, state = run([busy, gone], {"https://ia/busy.mp4": (503, b""), "https://ia/gone.mp4": (404, b"")},
                                keep_on_error=True)
     assert [e.id for e in kept] == ["busy"] and reasons["busy"].startswith("unconfirmed")
-    assert "https://ia/busy.mp4" not in state  # no answer: nothing recorded
+    assert state["https://ia/busy.mp4"] == {"unconfirmed": "2026-10-20"}
+    kept, reasons, _ = run([busy], {}, state, keep_on_error=True, due=lambda e: False)
+    assert [e.id for e in kept] == ["busy"] and not reasons  # not due: kept on its last (unconfirmed) result
 
 
 def test_live_server_errors_still_drop_new_streams(entry):
     kept, _, _ = run([entry(url="https://live/x.m3u8")], {"https://live/x.m3u8": (503, b"")})
     assert not kept
-
-
-def test_previously_failed_vod_always_rechecked(entry):
-    failed = entry(id="failed", kind="movie", url="https://ia/failed.mp4")
-    state = {"https://ia/failed.mp4": {"fails": 1}}
-    kept, reasons, _ = run([failed], {"https://ia/failed.mp4": (200, b"\x00\x00\x00 ftyp")}, state, sample=0.0)
-    assert [e.id for e in kept] == ["failed"] and reasons["failed"] == "ok"

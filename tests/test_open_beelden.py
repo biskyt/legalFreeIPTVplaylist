@@ -28,14 +28,25 @@ def test_harvest_and_build():
         return pages["second" if "resumptionToken" in url else "first"]
 
     state = {}
-    entries, decisions = ob.build({"min_minutes": 3, "max": 10}, state, fetch, pause=0)
+    entries, decisions = ob.build({"min_minutes": 3, "max": 10, "max_pages": 1000}, state, fetch, pause=0)
     assert urls[1].endswith("resumptionToken=!f!u!2")  # "!" not percent-encoded
     assert [e.title for e in entries] == ["Lang (1929)"]
     e = entries[0]
     assert (e.duration, e.languages, e.countries) == (723, ["nld"], ["NL"])
     assert e.page == "https://www.openbeelden.nl/media/1" and "Polygoon" in e.attribution
     assert {d.item: d.reason for d in decisions}["oai:openimages.eu:3"] == "license:restricted"
-    assert state["last"]
+    assert state["last"] and state["years"][0] == 2007  # all year windows done: changes only from now on
+    assert "from=2007-01-01&until=2007-12-31" in urls[0]
+
+
+def test_page_budget_spreads_first_harvest_over_runs():
+    pd = "https://creativecommons.org/publicdomain/mark/1.0/"
+    one = page([RECORD.format(id=1, title="Lang", extent="PT12M3S", lic=pd)])
+    state = {}
+    ob.harvest(state, lambda url, **kw: one, pause=0, max_pages=3)
+    assert state["years"] == [2007, 2008, 2009] and "last" not in state
+    ob.harvest(state, lambda url, **kw: one, pause=0, max_pages=100)
+    assert "last" in state
 
 
 def test_seconds():

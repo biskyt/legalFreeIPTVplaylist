@@ -144,14 +144,33 @@ Requires Python 3.12 or later.
 
 ```sh
 pip install -e ".[dev]"
-python -m freeplaylist build --out site --state state   # full build (network; ~15–30 min on first run)
+python -m freeplaylist build --out site --state state   # tonight's scheduled share (first run does everything)
+python -m freeplaylist build --all                      # everything now (network; up to an hour or more)
 python -m freeplaylist build --live-only --no-health    # quick partial build
 python -m freeplaylist credits                          # regenerate the README credits table
 ruff check . && pytest
 ```
 
-`state/` caches Internet Archive metadata and stream health between runs; the GitHub Action keeps it in the
-Actions cache.
+`state/` keeps each source's last results (snapshots), stream health and other caches between runs. The GitHub
+Action saves it on the `state` branch as a single compressed file, replaced each night by one commit, so it
+never expires and the repository doesn't grow. Deleting that branch makes the next run start from scratch.
+
+**Nightly schedule.** Harvesting and checking everything takes a long time and would put a lot of load on
+other people's servers, so each night does a share of it ([`config/schedule.yaml`](config/schedule.yaml)):
+- **Live channels:** the channel list is refreshed every night. Stream hosts are split into 7 groups, and each
+  night checks one group plus any stream never seen before. The broadcasters' websites (the website rule above)
+  rotate the same way.
+- **Movies and series:** each source is harvested once a week, on its own day (curated films Monday, Archive
+  series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday, Open Beelden Friday). On that day, its
+  new items and a quarter of the rest are checked.
+- **TV guide:** grabbed every night.
+
+Each source's results are kept as a snapshot, and every night's playlists are rebuilt from all snapshots, so a
+source refreshed tonight replaces exactly its own entries. If a harvest fails, the previous snapshot is used.
+All requests share one per-host limiter (a few connections per host, a gap between requests, and back-off when
+a server says it's busy), and the big checks go round the hosts in turn.
+To refresh everything at once, run `python -m freeplaylist build --all`, or start the workflow by hand with
+**full** ticked.
 
 **Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC, on
 manual runs, and on pushes that change code or config. It deploys to GitHub Pages. If a build comes out broken

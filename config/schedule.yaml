@@ -1,0 +1,21 @@
+# What the nightly build refreshes, so no night does everything. Days are 0 = Monday ... 6 = Sunday (UTC).
+#
+# Each source's last results are kept as a snapshot (state/snapshots/<source>.json). A source that isn't due
+# tonight is taken from its snapshot; the playlists are always rebuilt from all snapshots. A source with no
+# snapshot yet is always harvested, and `python -m freeplaylist build --all` (or the workflow's "full" option)
+# harvests everything.
+
+sources:
+  iptv-org: {days: [0, 1, 2, 3, 4, 5, 6]}   # one download, so nightly; its checks rotate (below)
+  curated: {days: [0]}
+  internet-archive-series: {days: [1]}
+  wikimedia-commons: {days: [2]}
+  internet-archive-movies: {days: [3]}
+  open-beelden: {days: [4], every_weeks: 1}  # 2 = every other week
+
+# Live streams and broadcasters' websites are split into this many groups by host name; each night checks one
+# group, plus streams never seen before. Other streams keep their last result.
+live_groups: 7
+
+# On a movie/series source's harvest night: new items are checked, plus this share of the rest.
+vod_recheck: 0.25

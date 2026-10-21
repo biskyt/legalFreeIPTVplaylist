@@ -104,10 +104,10 @@ denied_domains:
   - rttv.com
 
 # When a channel's streams are all unverified, fetch the broadcaster's website (home page plus up to two "live"
-# pages linked from it) and accept a stream whose exact host name the site mentions. Results are cached per site.
+# pages linked from it) and accept a stream whose exact host name the site mentions. Results are cached per site
+# and refreshed in the nightly rotation set in schedule.yaml.
 website_check:
   enabled: true
-  ttl_days: 7
   max_sites: 2500   # at most this many sites fetched in one run
 
 # Words too generic to identify a broadcaster in the generic-CDN rule.

@@ -9,10 +9,10 @@ import random
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
-from . import config, credits, enrich, epg, feeds, healthcheck, languages, m3u
+from . import config, credits, enrich, epg, feeds, healthcheck, languages, m3u, net, schedule, snapshots
 from .models import Decision, Entry
 from .sources import curated, internet_archive, iptv_org, open_beelden, website_check, wikimedia_commons
 
@@ -37,7 +37,8 @@ class Options:
     enrich: bool = True  # TMDB/IMDb ids and posters from Wikidata
     live: bool = True
     vod: bool = True
-    vod_sample: float = 0.05
+    all: bool = False  # harvest and check everything, ignoring the schedule
+    day: date | None = None  # the night being built (UTC); defaults to today
     enforce_minimums: bool = True
 
 
@@ -47,18 +48,43 @@ class Result:
     decisions: list[Decision] = field(default_factory=list)
 
 
-def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict]:
-    """All candidate entries from every source, before health checks."""
+def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]:
+    """All candidate entries from every source, before health checks, and the sources harvested tonight.
+
+    A source that isn't due tonight (config/schedule.yaml) is taken from its snapshot; see snapshots.py.
+    """
     load = lambda name: config.load(name, opts.config_dir)  # noqa: E731
+    sched = load("schedule")
+    day = opts.day or datetime.now(UTC).date()
     ia_state_path = opts.state_dir / "ia_cache.json"
     cache = internet_archive.MetadataCache(config.load_state(ia_state_path))
     entries: list[Entry] = []
     decisions: list[Decision] = []
+    harvested: set[str] = set()
 
-    def add(found: tuple[list[Entry], list[Decision]], label: str) -> None:
+    def section(key: str, harvest) -> None:
+        """One source's entries: harvested if due (or forced, or never harvested), otherwise its snapshot.
+        A failed harvest falls back to the snapshot, so one broken source doesn't stop the build."""
+        snap = snapshots.load(opts.state_dir, key)
+        found = None
+        if opts.all or snap is None or schedule.due(sched, key, day):
+            try:
+                found = harvest()
+            except Exception as e:  # noqa: BLE001 - fall back to the last good results
+                if snap is None:
+                    raise
+                log.warning("%s: harvest failed (%s); using the snapshot from %s", key, e, snap[2])
+            else:
+                snapshots.save(opts.state_dir, key, found[0], found[1], day.isoformat())
+                harvested.add(key)
+                log.info("%s: harvested %d entries", key, len(found[0]))
+        if found is None:
+            found = snap[0], snap[1]
+            log.info("%s: %d entries from the snapshot of %s", key, len(found[0]), snap[2])
+        for e in found[0]:
+            e.extra["section"] = key
         entries.extend(found[0])
         decisions.extend(found[1])
-        log.info("%s: %d entries", label, len(found[0]))
 
     # iptv-org also supplies the language and country names every source uses.
     api = iptv_org.fetch_api(opts.api_dir)
@@ -69,39 +95,28 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict]:
         # Order matters: when two sources offer the same film, the earlier one wins (see _dedupe), so curated
         # items keep their attribution, an episode isn't also listed as a movie, and Commons (free in the
         # film's own country too) wins over the Internet Archive.
-        add(curated.build(load("curated"), cache), "curated")
         deny = set(load("denylist").get("identifiers") or [])
-        add(internet_archive.series(load("series"), cache, deny), "internet archive series")
         movies_cfg = load("movies")
+        section("curated", lambda: curated.build(load("curated"), cache))
+        section("internet-archive-series", lambda: internet_archive.series(load("series"), cache, deny))
         if opts.extra_vod:
-            add(wikimedia_commons.build(load("commons"), (movies_cfg.get("rules") or {}).get("exclude_titles")),
-                "wikimedia commons")
-        add(internet_archive.movies(movies_cfg, cache, deny), "internet archive movies")
+            exclude = (movies_cfg.get("rules") or {}).get("exclude_titles")
+            section("wikimedia-commons", lambda: wikimedia_commons.build(load("commons"), exclude))
+        section("internet-archive-movies", lambda: internet_archive.movies(movies_cfg, cache, deny))
         config.save_state(ia_state_path, cache.data)
-        log.info("internet archive: fetched metadata for %d items", cache.fetched)
         if opts.extra_vod:
             ob_path = opts.state_dir / "open_beelden.json"
             ob_state = config.load_state(ob_path)
-            add(open_beelden.build(load("open_beelden"), ob_state), "open beelden")
-            config.save_state(ob_path, ob_state)
+            try:
+                section("open-beelden", lambda: open_beelden.build(load("open_beelden"), ob_state))
+            finally:
+                config.save_state(ob_path, ob_state)
     elif opts.live:
         # Curated live items still belong in a live-only build.
         found = curated.build({"direct": load("curated").get("direct")}, cache)
-        add(([e for e in found[0] if e.kind == "live"], found[1]), "curated live")
+        entries.extend(e for e in found[0] if e.kind == "live")
     if opts.live:
-        hosts_cfg = load("live_hosts")
-        rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
-        site_links = None
-        check = hosts_cfg.get("website_check") or {}
-        if opts.website_check and check.get("enabled", True):
-            path = opts.state_dir / "website_links.json"
-            state = config.load_state(path)
-            sites = iptv_org.unverified_sites(api, rules)
-            site_links = website_check.find_hosts(sites, state, ttl_days=check.get("ttl_days", 7),
-                                                  max_sites=check.get("max_sites", 2500))
-            config.save_state(path, {s: v for s, v in state.items() if s in sites})
-            log.info("website check: %d sites with unverified streams", len(sites))
-        add(iptv_org.build(api, rules, site_links), "iptv-org")
+        section("iptv-org", lambda: _live(opts, api, load, sched, day))
     entries, dropped = _dedupe(entries)
     if opts.vod and opts.enrich:
         wd_path = opts.state_dir / "wikidata.json"
@@ -109,7 +124,24 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict]:
         matched = enrich.apply(entries, enrich.load(wd_state))
         config.save_state(wd_path, wd_state)
         log.info("wikidata: ids for %d movies", matched)
-    return entries, decisions + dropped, load("credits").get("sources") or {}
+    return entries, decisions + dropped, load("credits").get("sources") or {}, harvested
+
+
+def _live(opts: Options, api: dict, load, sched: dict, day) -> tuple[list[Entry], list[Decision]]:
+    hosts_cfg = load("live_hosts")
+    rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
+    site_links = None
+    check = hosts_cfg.get("website_check") or {}
+    if opts.website_check and check.get("enabled", True):
+        path = opts.state_dir / "website_links.json"
+        state = config.load_state(path)
+        sites = iptv_org.unverified_sites(api, rules)
+        groups = sched.get("live_groups", 7)
+        site_links = website_check.find_hosts(sites, state, groups=groups, night=schedule.tonight(day, groups),
+                                              everything=opts.all, max_sites=check.get("max_sites", 2500))
+        config.save_state(path, {s: v for s, v in state.items() if s in sites})
+        log.info("website check: %d sites with unverified streams", len(sites))
+    return iptv_org.build(api, rules, site_links)
 
 
 def _title_key(e: Entry) -> tuple | None:
@@ -139,18 +171,32 @@ def _dedupe(entries: list[Entry]) -> tuple[list[Entry], list[Decision]]:
     return kept, dropped
 
 
-def check_health(entries: list[Entry], opts: Options) -> tuple[list[Entry], list[Decision]]:
+def check_health(entries: list[Entry], opts: Options, harvested: set[str]) -> tuple[list[Entry], list[Decision]]:
+    """Checks tonight's share of streams (see config/schedule.yaml); the rest keep their last result."""
+    sched = config.load("schedule", opts.config_dir)
+    day = opts.day or datetime.now(UTC).date()
+    groups = sched.get("live_groups", 7)
+    night = schedule.tonight(day, groups)
+    recheck = sched.get("vod_recheck", 0.25)
+    rng = random.Random()
     path = opts.state_dir / "health.json"
     state = config.load_state(path)
-    checker = healthcheck.Checker()
+
+    def live_due(e: Entry) -> bool:
+        first = (e.extra.get("candidates") or [{"url": e.url}])[0]["url"]
+        return opts.all or schedule.group(net.host_of(first), groups) == night
+
+    def vod_due(e: Entry) -> bool:
+        return opts.all or (e.extra.get("section") in harvested and rng.random() < recheck)
+
     live = [e for e in entries if e.kind == "live"]
     vod = [e for e in entries if e.kind != "live"]
-    live, d1 = healthcheck.run(live, state, checker)
-    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), sample=opts.vod_sample,
-                              rng=random.Random(), keep_on_error=True)
+    live, d1 = healthcheck.run(live, state, healthcheck.Checker(), due=live_due)
+    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), due=vod_due, keep_on_error=True)
     urls = {c["url"] for e in entries for c in (e.extra.get("candidates") or [{"url": e.url}])}
     config.save_state(path, healthcheck.prune(state, urls))
-    log.info("health: kept %d live, %d vod", len(live), len(vod))
+    log.info("health: kept %d live, %d vod (live host group %d of %d checked tonight)", len(live), len(vod),
+             night + 1, groups)
     return live + vod, d1 + d2
 
 
@@ -272,12 +318,12 @@ def write_site(out: Path, built: dict[str, feeds.Feed], decisions: list[Decision
 
 
 def run(opts: Options) -> Result:
-    entries, decisions, sources = collect(opts)
+    entries, decisions, sources, harvested = collect(opts)
     absent = credits.missing(entries, sources)
     if absent:
         raise BuildError(f"no credit record in credits.yaml for: {', '.join(sorted(absent))}")
     if opts.health:
-        entries, d = check_health(entries, opts)
+        entries, d = check_health(entries, opts, harvested)
         decisions += d
     feed_cfg = config.load("feeds", opts.config_dir)
     built, d = make_feeds(entries, feed_cfg)
