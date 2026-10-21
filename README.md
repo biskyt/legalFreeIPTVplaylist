@@ -1,13 +1,27 @@
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/biskyt) [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/biskyt)
+
+_This work is free, with no ads and no tracking and no data collection. If you find it useful, you can support its
+development by buying me a coffee with the links above._
+
 # Legal free IPTV playlist
 
-M3U playlists of **legally free** live TV (including free, ad-supported services such as Pluto TV), and public-domain or openly
-licensed movies and TV series, for any IPTV app. A GitHub Action rebuilds them every day and publishes them to
-GitHub Pages.
-
-It started as demo content for [MyTVPlayer](https://github.com/biskyt/MyTVPlayer), but it's meant to be
-useful to anyone who wants free TV without a subscription.
+M3U playlists of **legally free** live TV (including free, ad-supported services such as Pluto TV), and
+public-domain or openly licensed movies and TV series, for any IPTV app. A GitHub Action rebuilds them every day
+and publishes them to GitHub Pages.
 
 > This project only **links** to streams that their owners make freely available. It hosts no video.
+
+## Why this project exists
+
+I built this mainly to test [MyTVPlayer](https://github.com/biskyt/MyTVPlayer), my free and open-source IPTV
+player for Android TV and Fire TV. Testing an IPTV app needs a realistic playlist: thousands of live channels in
+many countries and languages, a TV guide, and movies and series with artwork, all of which can be shared and
+shown in screenshots without anyone needing a paid subscription.
+
+I've published it in case it's useful to other people too: anyone who wants free, legal TV without a
+subscription, or other developers who need a test playlist for their own app. The playlists work in any IPTV app;
+their extras (movies and series sections, languages, the TV guide) are tried out in
+[MyTVPlayer](https://github.com/biskyt/MyTVPlayer) first.
 
 ## Playlists
 
@@ -200,6 +214,13 @@ src/freeplaylist/
 tests/         offline tests (fixtures only)
 FORMAT.md      the M3U movie/series convention
 ```
+
+## Support
+
+This project is free, with no ads and no tracking. If you find it useful, you can support its development:
+
+- [Ko-fi](https://ko-fi.com/biskyt)
+- [GitHub Sponsors](https://github.com/sponsors/biskyt)
 
 ## Contributing
 
