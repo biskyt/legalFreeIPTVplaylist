@@ -58,13 +58,19 @@ included only if the automatic rules in [`config/live_hosts.yaml`](config/live_h
   NSFW, or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host;
   and a stream that only plays with a spoofed user agent or referrer (unless the host is an official one).
 - **Accepted:** a stream on the broadcaster's own domain, or on a delivery domain the broadcaster runs; on a
-  free, ad-supported streaming service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV, Xumo Play); on a licensed
-  playout service (Amagi, Wurl and similar) or a US public-access platform; on a general CDN whose address
+  free streaming service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV, Xumo Play; see
+  below); on a licensed playout service (Amagi, Wurl and similar) or a US public-access platform; on a general CDN whose address
   names the broadcaster; or on any host that **the broadcaster's own website links to** (the build checks
   the sites of channels whose streams nothing else confirms, and caches the result for a week).
 - **Never accepted:** state media under UK/EU sanctions.
 - **Anything else is left out** and listed in `report.json`, so the rules can be improved over time.
 - [`config/live_allowlist.yaml`](config/live_allowlist.yaml) holds manual decisions, which override the rules.
+
+**Free streaming services (FAST).** Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV and
+Xumo Play are *Free Ad-Supported Streaming Television* services, known in the industry as FAST. They license
+their channels from the rights holders and pay for them with adverts, so they stream them to anyone, free and
+without an account. That's why their channels count as legally free here. Their channels are grouped under the
+service's name (e.g. `US | Pluto TV`). Most of them are only available in certain countries.
 
 Every stream is then **health-checked**. For HLS, both the playlist and its first variant must load. Dead
 streams are dropped; a channel with several streams falls back to the next working one.
