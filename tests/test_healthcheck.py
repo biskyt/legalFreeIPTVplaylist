@@ -90,3 +90,9 @@ def test_vod_kept_when_server_gives_no_answer(entry):
 def test_live_server_errors_still_drop_new_streams(entry):
     kept, _, _ = run([entry(url="https://live/x.m3u8")], {"https://live/x.m3u8": (503, b"")})
     assert not kept
+
+
+def test_malformed_variant_url_is_dead_not_a_crash(entry):
+    bad = b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhttp://[broken/index.m3u8\n"
+    kept, reasons, _ = run([entry(id="bad", url="https://a/master.m3u8")], {"https://a/master.m3u8": (200, bad)})
+    assert not kept and "bad URL" in reasons["bad"]

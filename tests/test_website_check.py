@@ -48,3 +48,13 @@ def test_website_link_accepts_unverified_stream():
     reasons = {d.item.split(" ", 1)[1]: d.reason for d in decisions}
     assert reasons["https://cdn-7.pishow.tv/live/431/master.m3u8"] == "official:website-link"
     assert reasons["http://170.83.16.50/DW/index.m3u8"] == "ip-host"  # hard rules still apply first
+
+
+def test_malformed_links_and_failing_sites_dont_stop_the_check():
+    home = '<a href="http://[broken/live">x</a><a href="/live">y</a>'
+    assert website_check.live_links(home, "https://tv.example/") == ["https://tv.example/live"]
+
+    def boom(url, **kw):
+        raise ValueError("Invalid IPv6 URL")
+
+    assert website_check.site_hosts("https://tv.example/", boom) == (set(), False)

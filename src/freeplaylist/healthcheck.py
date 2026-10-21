@@ -62,6 +62,12 @@ class Checker:
         return self._probe(url, user_agent=ua, referrer=ref, timeout=self.timeout)
 
     def check(self, url: str, ua: str | None = None, ref: str | None = None, labels=()) -> Result:
+        try:
+            return self._check(url, ua, ref, labels)
+        except ValueError as e:  # a malformed URL in the stream or its playlist: the stream can't play
+            return Result("dead", f"bad URL: {e}")
+
+    def _check(self, url: str, ua: str | None, ref: str | None, labels) -> Result:
         p = self._get(url, ua, ref)
         if p.status in (200, 206):
             path = urllib.parse.urlparse(url).path.lower()

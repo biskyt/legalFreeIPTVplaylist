@@ -34,9 +34,13 @@ def live_links(text: str, base: str, limit: int = 2) -> list[str]:
     site = urllib.parse.urlparse(base).hostname or ""
     found: list[str] = []
     for href in _HREF.findall(text):
-        url = urllib.parse.urljoin(base, href.strip())
-        parsed = urllib.parse.urlparse(url)
-        if parsed.scheme not in ("http", "https") or (parsed.hostname or "") != site:
+        try:
+            url = urllib.parse.urljoin(base, href.strip())
+            parsed = urllib.parse.urlparse(url)
+            hostname = parsed.hostname or ""
+        except ValueError:  # malformed links (e.g. "http://[broken") are just skipped
+            continue
+        if parsed.scheme not in ("http", "https") or hostname != site:
             continue
         if _LIVE_LINK.search(parsed.path) and url not in found and url.rstrip("/") != base.rstrip("/"):
             found.append(url)
@@ -51,12 +55,16 @@ def _page(url: str, fetch) -> str:
 
 
 def site_hosts(url: str, fetch=net.probe) -> tuple[set[str], bool]:
-    """(hosts mentioned by a website's home page and up to two of its live pages, whether the home page loaded)."""
-    home = _page(url, fetch)
-    hosts = hosts_in(home)
-    for link in live_links(home, url):
-        hosts |= hosts_in(_page(link, fetch))
-    return hosts, bool(home)
+    """(hosts mentioned by a website's home page and up to two of its live pages, whether the home page loaded).
+    Any error counts as "didn't load", so one odd website never stops the build; it's retried another night."""
+    try:
+        home = _page(url, fetch)
+        hosts = hosts_in(home)
+        for link in live_links(home, url):
+            hosts |= hosts_in(_page(link, fetch))
+        return hosts, bool(home)
+    except Exception:  # noqa: BLE001
+        return set(), False
 
 
 def find_hosts(sites: set[str], state: dict, *, groups: int = 7, night: int = 0, everything: bool = False,
