@@ -3,30 +3,71 @@
   "channel": "DW.de",
   "id": "SD",
   "name": "SD",
-  "is_main": true
+  "is_main": true,
+  "languages": [
+   "eng"
+  ],
+  "broadcast_area": [
+   "r/INT"
+  ]
  },
  {
   "channel": "Example.uk",
   "id": "SD",
   "name": "SD",
-  "is_main": true
+  "is_main": true,
+  "languages": [
+   "eng"
+  ],
+  "broadcast_area": [
+   "c/UK"
+  ]
  },
  {
   "channel": "Example.uk",
   "id": "HD",
   "name": "HD",
-  "is_main": false
+  "is_main": false,
+  "languages": [
+   "eng"
+  ],
+  "broadcast_area": [
+   "c/UK"
+  ]
  },
  {
   "channel": "Pluto1.us",
   "id": "SD",
   "name": "SD",
-  "is_main": true
+  "is_main": true,
+  "languages": [
+   "eng"
+  ],
+  "broadcast_area": [
+   "c/US",
+   "s/US-CA"
+  ]
  },
  {
   "channel": "AlJazeera.qa",
   "id": "English",
   "name": "English",
-  "is_main": false
+  "is_main": false,
+  "languages": [
+   "eng"
+  ],
+  "broadcast_area": []
+ },
+ {
+  "channel": "Euronews.fr",
+  "id": "Polish",
+  "name": "Polish",
+  "is_main": false,
+  "languages": [
+   "pol"
+  ],
+  "broadcast_area": [
+   "c/PL"
+  ]
  }
 ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .. import languages
 from ..models import Decision, Entry
 from . import internet_archive as ia
 
@@ -27,7 +28,7 @@ def build(cfg: dict, cache: ia.MetadataCache) -> tuple[list[Entry], list[Decisio
             item["ia"], summary, video,
             group=opts["group"], source=opts["source"], license=opts.get("license"),
             attribution=opts.get("attribution"), title=opts.get("title"), year=opts.get("year"),
-            id_prefix=opts.get("id_prefix", "ia"),
+            id_prefix=opts.get("id_prefix", "ia"), langs=languages.normalise_all(opts.get("language")),
         ))
         decisions.append(Decision(SOURCE, item["ia"], True, "curated"))
 
@@ -37,7 +38,8 @@ def build(cfg: dict, cache: ia.MetadataCache) -> tuple[list[Entry], list[Decisio
             source=item["source"], logo=item.get("logo"), duration=item.get("duration"), year=item.get("year"),
             series_name=item.get("series_name"), season=item.get("season"), episode=item.get("episode"),
             license=item.get("license"), attribution=item.get("attribution"), page=item.get("page"),
-            description=item.get("description"),
+            description=item.get("description"), languages=languages.normalise_all(item.get("language")),
+            countries=[c.upper() for c in item.get("countries") or []],
         ))
         decisions.append(Decision(SOURCE, item["id"], True, "curated"))
     return entries, decisions

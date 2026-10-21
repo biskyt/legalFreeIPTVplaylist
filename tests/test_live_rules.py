@@ -40,7 +40,8 @@ def test_acceptances(built):
 
 def test_entries(built):
     by_id = {e.id: e for e in built[0]}
-    assert set(by_id) == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English"}
+    assert set(by_id) == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English", "Euronews.fr@Polish",
+                          "Telesur.ve@SD", "Xumo1.us@SD"}
     dw = by_id["DW.de@SD"]
     assert (dw.title, dw.group, dw.logo, dw.source) == ("DW", "Live: News", "https://i.imgur.com/dw.png", "iptv-org")
     assert by_id["Pluto1.us@SD"].group == "FAST: Pluto TV"
@@ -66,3 +67,11 @@ def test_allowlist_overrides(built):
     assert r["https://live.example.co.uk/hls/main.m3u8"] == "denied-channel"
     dw = next(e for e in entries if e.id == "DW.de@SD")
     assert (dw.catchup, dw.catchup_days, dw.catchup_source) == ("append", 1, "?utc={utc}")
+
+
+def test_rule_fixes(built):
+    r = reasons(built[1])
+    # A /live/a/b/123/... path is not an Xtream login unless the id is the file name.
+    assert r["https://cdn-euronews.akamaized.net/live/eds/euronews-pl/26382/index.m3u8"] == "official:cdn-named"
+    assert r["https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8"] == "official:cdn-named"
+    assert r["https://xumo-xumoent-ch825-ku23q.fast.nbcuni.com/live/master.m3u8"] == "fast:xumo-play"

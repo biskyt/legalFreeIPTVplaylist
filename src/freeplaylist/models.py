@@ -29,6 +29,10 @@ class Entry:
     catchup: str | None = None
     catchup_days: int | None = None
     catchup_source: str | None = None
+    languages: list[str] = field(default_factory=list)  # ISO 639-3 codes; "zxx" = no dialogue
+    countries: list[str] = field(default_factory=list)  # ISO 3166-1 alpha-2: where it's from / meant to be watched
+    tmdb: str | None = None  # TMDB id: the movie's, or the series' (TV) id for an episode
+    imdb: str | None = None  # IMDb id (tt...): the movie's, or the series' for an episode
     # Metadata for catalog.json and credits; not written to the M3U.
     license: str | None = None
     attribution: str | None = None

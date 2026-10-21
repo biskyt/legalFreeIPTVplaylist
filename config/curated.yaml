@@ -35,6 +35,7 @@ ia_movies:
     license: CC BY 4.0
     attribution: "© Blender Foundation | gooseberry.blender.org, CC BY 4.0"
   - ia: spring_blenderopenmovie
+    language: zxx   # no dialogue
     title: Spring (2019)
     year: 2019
     license: CC BY 4.0
@@ -45,21 +46,25 @@ ia_movies:
     license: CC BY 4.0
     attribution: "© Blender Foundation | studio.blender.org, CC BY 4.0"
   - ia: wing_it
+    language: zxx   # no dialogue
     title: Wing It! (2023)
     year: 2023
     license: CC BY 4.0
     attribution: "© Blender Foundation | studio.blender.org, CC BY 4.0"
   - ia: Caminandes1LlamaDrama
+    language: zxx   # no dialogue
     title: "Caminandes 1: Llama Drama (2013)"
     year: 2013
     license: CC BY 3.0
     attribution: "© Blender Foundation | caminandes.com, CC BY 3.0"
   - ia: Caminandes2GranDillama
+    language: zxx   # no dialogue
     title: "Caminandes 2: Gran Dillama (2013)"
     year: 2013
     license: CC BY 3.0
     attribution: "© Blender Foundation | caminandes.com, CC BY 3.0"
   - ia: CaminandesLlamigos
+    language: zxx   # no dialogue
     title: "Caminandes 3: Llamigos (2016)"
     year: 2016
     license: CC BY 3.0
@@ -67,6 +72,7 @@ ia_movies:
 
 ia_defaults:
   group: "Movies: Open Movies"
+  language: eng
   source: blender
   id_prefix: blender
 

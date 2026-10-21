@@ -25,3 +25,13 @@ combined:
   playlist:
     title: Everything
     members: [live, movies, series]
+
+# One playlist per language (languages/<ISO 639-3 code>.m3u), joined from the rendered member feeds, for every
+# language with at least `min_entries` entries.
+languages:
+  members: [live, movies, series]
+  min_entries: 10
+
+# TV guide (XMLTV) for the live channels, published next to the playlists and announced in the url-tvg header of
+# every playlist with live channels. The build writes the channel list; the workflow runs iptv-org's grabber.
+guide: epg.xml.gz

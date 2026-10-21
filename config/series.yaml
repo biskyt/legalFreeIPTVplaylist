@@ -11,43 +11,73 @@
 #   query:   Internet Archive search query
 #   match:   regex an item's identifier or title must match (also stripped from episode titles)
 #   basis:   why the episodes are public domain
+#   language: ISO 639-3 code of the episodes (used when an item doesn't state its own)
+#   wikidata, tmdb, imdb: the show's ids (TMDB TV id), published as tmdb-id / imdb-id on every episode
 #   max_year: items dated later than this are skipped (the show's public-domain years)
 #   min_minutes / max_minutes: episode length range (default 10-70), which keeps feature films out
 #   max:     cap on episodes (optional, default 300)
 
 shows:
   - name: The Beverly Hillbillies
+    wikidata: Q941737
+    tmdb: 1930
+    imdb: tt0055662
     query: 'collection:(classic_tv) AND title:("Beverly Hillbillies")'
     match: 'the beverly hillbillies|beverly[ _]hillbillies'
     basis: Early episodes whose copyright was not renewed
+    language: eng
     max_year: 1971
   - name: The Lucy Show
+    wikidata: Q1247523
+    tmdb: 2144
+    imdb: tt0055686
     query: 'collection:(classic_tv) AND identifier:(TLS_*)'
     match: '^TLS_|the lucy show'
     basis: Episodes whose copyright was not renewed
+    language: eng
     max_year: 1968
   - name: Bonanza
+    wikidata: Q862187
+    tmdb: 1018
+    imdb: tt0052451
     query: 'collection:(classic_tv) AND title:(Bonanza)'
     match: 'bonanza'
     basis: Episodes whose copyright was not renewed
+    language: eng
     max_year: 1973
   - name: Sherlock Holmes (1954)
+    wikidata: Q2570112
+    tmdb: 6560
+    imdb: tt0046642
     query: 'collection:(classic_tv) AND title:("Sherlock Holmes")'
     match: 'sherlock[ _-]?holmes'
     basis: 1954 series not renewed
+    language: eng
     max_year: 1955
   - name: Dragnet
+    wikidata: Q1247359
+    tmdb: 3716
+    imdb: tt0043194
     query: 'collection:(classic_tv) AND title:(Dragnet)'
     match: 'dragnet'
     basis: 1950s episodes whose copyright was not renewed
+    language: eng
     max_year: 1959
   - name: Tales of Tomorrow
+    wikidata: Q2676592
+    tmdb: 15487
+    imdb: tt0043238
     query: 'collection:(classic_tv) AND title:("Tales of Tomorrow")'
     match: 'tales[ _-]*of[ _-]*tomorrow'
     basis: 1951-53 anthology, not renewed
+    language: eng
     max_year: 1953
   - name: The Cisco Kid
+    wikidata: Q2974328
+    tmdb: 18010
+    imdb: tt0042093
     query: 'collection:(classic_tv) AND title:("Cisco Kid")'
     match: 'cisco[ _]kid'
     basis: Episodes whose copyright was not renewed
+    language: eng
     max_year: 1956

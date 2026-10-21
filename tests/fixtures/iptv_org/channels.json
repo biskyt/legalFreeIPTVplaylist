@@ -110,5 +110,53 @@
   "closed": null,
   "replaced_by": null,
   "website": "https://www.aljazeera.net/"
+ },
+ {
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "id": "Euronews.fr",
+  "name": "Euronews",
+  "country": "FR",
+  "categories": [
+   "news"
+  ],
+  "website": "https://pl.euronews.com/"
+ },
+ {
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "id": "Telesur.ve",
+  "name": "teleSUR",
+  "country": "VE",
+  "categories": [
+   "news"
+  ],
+  "website": "https://www.telesurtv.net/"
+ },
+ {
+  "alt_names": [],
+  "network": null,
+  "owners": [],
+  "is_nsfw": false,
+  "launched": null,
+  "closed": null,
+  "replaced_by": null,
+  "id": "Xumo1.us",
+  "name": "Xumo Movies",
+  "country": "US",
+  "categories": [
+   "movies"
+  ],
+  "website": "https://play.xumo.com/"
  }
 ]

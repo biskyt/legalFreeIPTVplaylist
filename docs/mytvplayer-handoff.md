@@ -75,3 +75,27 @@ way they do for Xtream accounts, **without changing behaviour for any existing p
   matching guides.
 - Our playlists set catch-up attributes (`catchup`, `catchup-days`, `catchup-source`) only when a source
   supports catch-up; today none do. Catch-up for M3U is already on MyTVPlayer's roadmap.
+
+## Addendum (FORMAT.md 1.1): languages, TMDB ids and the TV guide
+
+Our playlists now carry more metadata. Each item below is optional for MyTVPlayer, and each improves what our
+playlists (and others that use the same attributes) look like in the app.
+
+1. **Language and country.** Every entry may have `tvg-language` (English names, `;`-separated, e.g.
+   `English;Spanish`; `No linguistic content` for silent films) and `tvg-country` (ISO 3166-1 alpha-2,
+   `;`-separated, e.g. `DE;AT`; note `GB`, not `UK`).
+   - When a category's entries carry these, use them for the language/country groups in Settings → Categories,
+     instead of `CategoryLanguageDetector.detect(name)`. The mapping: English → the user's English group, a
+     single country → that country's group (`GB` → `UK`).
+   - Keep the name-based detection as the fallback for playlists without the attributes; their behaviour must
+     not change.
+   - Silent films (`No linguistic content`) suit every language; don't hide them when a language filter is on.
+2. **TMDB and IMDb ids.** Movies may have `tmdb-id` (TMDB movie id) and `imdb-id`. Episodes may have the
+   *series'* `tmdb-id` (TMDB TV id) and `imdb-id`. When TMDB artwork and details (already on the roadmap) are
+   enabled, look items up by these ids first, and fall back to searching by title and year.
+3. **TV guide.** The playlist header now has `url-tvg="https://biskyt.github.io/legalFreeIPTVplaylist/epg.xml.gz"`.
+   Its channel ids equal our live `tvg-id`s exactly (including the `@Feed` part). MyTVPlayer already reads the
+   first `url-tvg`; nothing else should be needed, but check that matching works with the exact id first, then
+   the id cut at `@`.
+4. **Per-language playlists** are published at `…/languages/<ISO 639-3>.m3u` (e.g. `languages/fra.m3u`). These
+   are ordinary playlists; no work is needed, but the app's "free channels" setup could offer them.

@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
+from . import languages
 from .models import Entry
 
 HEADER = "#EXTM3U"
@@ -41,6 +42,10 @@ def _attrs(e: Entry) -> list[tuple[str, str | int | None]]:
         ("tvg-id", e.id),
         ("tvg-name", e.title),
         ("tvg-logo", e.logo),
+        ("tvg-country", ";".join(e.countries)),
+        ("tvg-language", ";".join(languages.name(c) for c in e.languages)),
+        ("tmdb-id", e.tmdb),
+        ("imdb-id", e.imdb),
         ("year", e.year),
         ("catchup", e.catchup),
         ("catchup-days", e.catchup_days),

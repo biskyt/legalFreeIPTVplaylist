@@ -3,7 +3,7 @@
 # Every platform named here needs a matching entry in credits.yaml (a test checks this).
 
 # Free, ad-supported (FAST) services. Streams on these get their own "FAST: <name>" group.
-# `host` matches the host name or any parent domain; `path_prefix` (optional) must also match the URL path.
+# `host` matches the host name or any parent domain; `path_prefix` / `host_prefix` (optional) must also match.
 platforms:
   - name: Pluto TV
     credit: pluto-tv
@@ -31,6 +31,13 @@ platforms:
   - name: Tubi
     credit: tubi
     host: tubi.io
+  - name: Rakuten TV
+    credit: rakuten-tv
+    host: fast.rakuten.tv
+  - name: Xumo Play
+    credit: xumo-play
+    host: fast.nbcuni.com
+    host_prefix: xumo-
 
 # Licensed playout / distribution services that broadcasters pay to deliver their own channels.
 # Streams here are accepted but grouped by the channel's category, like any broadcaster's stream.
@@ -44,13 +51,18 @@ distribution:
   - ottera.tv
   - otteravision.com
   - stingray.com
+  # Platforms US cities and public-access (PEG) channels use to stream their own channels.
+  - cablecast.tv
+  - telvue.com
 
 # Delivery domains a broadcaster runs itself that don't match the channel's website domain.
 broadcaster_hosts:
   getaj.net: Al Jazeera Media Network
   thehlive.com: Al Jazeera Media Network
   rtve.es: RTVE
-  ntv.ru: NTV
+  nhkworld.jp: NHK
+  trt.com.tr: TRT
+  ard-mcdn.de: ARD
 
 # General-purpose CDNs. Anyone can rent these, so a stream on them is only accepted when the URL also names
 # the broadcaster: the first label of the channel's website domain (e.g. "dw" for dw.com, "nasa" for nasa.gov)
@@ -67,22 +79,35 @@ generic_cdns:
   - mdstrm.com
   - kwikmotion.com
   - streamhoster.com
-  - cablecast.tv
-  - telvue.com
   - brightcove.com
   - brightcovecdn.com
   - llnwi.net
   - fastly.net
   - azureedge.net
   - googlevideo.com
+  - edgesuite.net
+  - immergo.tv
+  - ultrabase.net
+  - dps.live
 
-# Hosts that are never accepted, even if another rule would accept them (known restream / playlist-sharing hosts).
+# Hosts that are never accepted, even if another rule would accept them: known restream and playlist-sharing hosts,
+# and state media under UK/EU sanctions.
 denied_domains:
   - freeott.top
   - freem3u.xyz
   - dethich.pw
   - githubusercontent.com
   - pastebin.com
+  - smotrim.ru
+  - rt.com
+  - rttv.com
+
+# When a channel's streams are all unverified, fetch the broadcaster's website (home page plus up to two "live"
+# pages linked from it) and accept a stream whose exact host name the site mentions. Results are cached per site.
+website_check:
+  enabled: true
+  ttl_days: 7
+  max_sites: 2500   # at most this many sites fetched in one run
 
 # Words too generic to identify a broadcaster in the generic-CDN rule.
 generic_tokens: [tv, live, news, www, web, the, channel, stream, radio, media, play, video, hd, one, plus, cdn]

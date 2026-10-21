@@ -18,14 +18,25 @@ useful to anyone who wants free TV without a subscription.
 | `https://biskyt.github.io/legalFreeIPTVplaylist/vod.m3u` | Movies and series |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/movies.m3u` | Movies only |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/series.m3u` | Series only |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/languages/<code>.m3u` | Everything in one language, e.g. [`languages/fra.m3u`](https://biskyt.github.io/legalFreeIPTVplaylist/languages/fra.m3u) for French; [list](https://biskyt.github.io/legalFreeIPTVplaylist/) |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/epg.xml.gz` | TV guide (XMLTV) for the live channels |
 
 Use `playlist.m3u` in apps that understand our [movie and series convention](FORMAT.md). Apps that take one
 playlist per content type can use the separate feeds instead. Any app can play every entry: apps that don't
 know the convention list films and episodes as channels, grouped as `Movies: …` and `Series: …`.
 
-Live channel ids are [iptv-org](https://github.com/iptv-org/iptv) ids, so guides keyed on those ids (for
-example from [iptv-epg.org](https://iptv-epg.org) or the
-[iptv-org/epg](https://github.com/iptv-org/epg) grabber) match them. A published guide is planned.
+### Languages, TV guide and movie details
+- **Languages:** every entry is tagged with `tvg-language` (e.g. `English;Spanish`) and `tvg-country` (e.g.
+  `DE;AT`), the attributes iptv-org's playlists also use, so players can filter by them. There's also one
+  playlist per language (any language with at least 10 entries). Silent films appear in every language's list.
+  Live channels get their languages from iptv-org; films from their source, or a per-collection default.
+- **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
+  load it automatically. It's built daily with [iptv-org's EPG grabber](https://github.com/iptv-org/epg) for
+  every channel that has a known guide source (roughly half of them); the guide data belongs to those sources.
+- **Movie details:** films carry `tmdb-id` and `imdb-id` when [Wikidata](https://www.wikidata.org) links the
+  exact Archive item or Commons file to a film (about 70% of them), and a free poster from Wikimedia Commons
+  when Wikidata has one. Episodes carry their show's ids. Players can use the ids to fetch artwork and details
+  from TMDB. Descriptions, licences and credits are in `catalog.json`.
 
 Each build also publishes:
 - [`catalog.json`](https://biskyt.github.io/legalFreeIPTVplaylist/catalog.json): descriptions, licences and source pages;
@@ -43,8 +54,11 @@ included only if the automatic rules in [`config/live_hosts.yaml`](config/live_h
   NSFW, or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host;
   and a stream that only plays with a spoofed user agent or referrer (unless the host is an official one).
 - **Accepted:** a stream on the broadcaster's own domain, or on a delivery domain the broadcaster runs; on a
-  FAST service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi); on a licensed playout service
-  (Amagi, Wurl and similar); or on a general CDN whose address names the broadcaster.
+  FAST service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV, Xumo Play); on a licensed
+  playout service (Amagi, Wurl and similar) or a US public-access platform; on a general CDN whose address
+  names the broadcaster; or on any host that **the broadcaster's own website links to** (the build checks
+  the sites of channels whose streams nothing else confirms, and caches the result for a week).
+- **Never accepted:** state media under UK/EU sanctions.
 - **Anything else is left out** and listed in `report.json`, so the rules can be improved over time.
 - [`config/live_allowlist.yaml`](config/live_allowlist.yaml) holds manual decisions, which override the rules.
 
@@ -52,8 +66,14 @@ Every stream is then **health-checked**. For HLS, both the playlist and its firs
 streams are dropped; a channel with several streams falls back to the next working one.
 
 ### Movies
-Movies come from the [Internet Archive](https://archive.org/) and from Blender Studio's open movies. Archive
-uploaders set licence and date details themselves, so an item is used only when:
+Movies come from [Wikimedia Commons](https://commons.wikimedia.org), the [Internet Archive](https://archive.org/),
+Blender Studio's open movies and [Open Beelden](https://www.openbeelden.nl) (Dutch archive film).
+
+**Wikimedia Commons** only keeps films that are free in the US *and* in their country of origin, so these are
+the safest choice outside the US. When the same film is available from Commons and the Archive, the Commons
+copy is used. **Open Beelden** items are public domain or CC BY / BY-SA, as stated on each item.
+
+**Internet Archive** uploaders set licence and date details themselves, so an item is used only when:
 - it has a public-domain mark and is dated **1977 or earlier**; or
 - it has a CC BY or CC BY-SA licence (NC and ND licences are never used); or
 - it has no licence but is dated **before 1931**, which makes it public domain in the US by age.
@@ -69,8 +89,14 @@ public-domain or CC BY / BY-SA licence on its Archive page.
 ### Important: "public domain" means public domain in the United States
 The films and episodes here are public domain under **US** law. Copyright terms differ between countries.
 In the UK and EU, for example, a film can stay protected for 70 years after its director or writers died. If
-you're outside the US, check what applies where you live. FAST channels and some broadcasters also limit
-their streams to certain countries.
+you're outside the US, check what applies where you live. (Films from Wikimedia Commons are the exception:
+they're free in their country of origin too.)
+
+### Your responsibilities
+- FAST channels and many broadcasters limit their streams to certain countries (`tvg-country` shows where a
+  live feed is meant to be watched). This project doesn't get around geo-blocking, and you shouldn't either.
+- In the UK, you need a [TV Licence](https://www.tvlicensing.co.uk/) to watch or record live TV on any channel
+  or service, including the live channels here. Other countries have their own rules.
 
 ## Sources and credits
 
@@ -85,6 +111,10 @@ their streams to certain countries.
 | [Plex](https://www.plex.tv/live-tv/) | Free, ad-supported (FAST) channels | Free to watch from Plex; content and trademarks belong to Plex and its partners |  |
 | [The Roku Channel](https://therokuchannel.roku.com/) | Free, ad-supported (FAST) channels | Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners |  |
 | [Tubi](https://tubitv.com/) | Free, ad-supported (FAST) channels | Free to watch from Tubi; content and trademarks belong to Tubi and its partners |  |
+| [Rakuten TV](https://www.rakuten.tv/) | Free, ad-supported (FAST) channels | Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners | Availability varies by country. |
+| [Xumo Play](https://play.xumo.com/) | Free, ad-supported (FAST) channels | Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners | Availability varies by country. |
+| [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |
+| [Open Beelden (Netherlands Institute for Sound and Vision)](https://www.openbeelden.nl/) | Dutch archive films and newsreels | Public domain or CC BY / CC BY-SA, per item | Credit: Nederlands Instituut voor Beeld en Geluid / Open Beelden. Each item's maker and licence are listed in catalog.json and on its Open Beelden page. |
 
 Every live channel belongs to its broadcaster. The full list of broadcasters, with links, is published with each build in [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html).
 <!-- credits:end -->
@@ -123,8 +153,9 @@ Layout:
 ```
 config/        what to include: sources, rules, allow/deny lists, feeds, credits
 src/freeplaylist/
-  sources/     iptv_org.py (live + rules), internet_archive.py (movies, series), curated.py
-  healthcheck.py  feeds.py  m3u.py  credits.py  build.py
+  sources/     iptv_org.py (live + rules), website_check.py, internet_archive.py (movies, series),
+               wikimedia_commons.py, open_beelden.py, curated.py
+  enrich.py (Wikidata ids)  epg.py  languages.py  healthcheck.py  feeds.py  m3u.py  credits.py  build.py
 tests/         offline tests (fixtures only)
 FORMAT.md      the M3U movie/series convention
 ```

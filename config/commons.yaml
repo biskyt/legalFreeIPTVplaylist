@@ -1,0 +1,14 @@
+# Films from Wikimedia Commons (https://commons.wikimedia.org). Commons only accepts files that are free in the
+# United States and in their country of origin. Licences accepted: public domain, CC0, CC BY, CC BY-SA.
+
+queries:
+  - 'filetype:video deepcat:"Films in the public domain"'
+candidates: 3000   # files considered per query
+max: 800           # films kept (longest first)
+min_minutes: 5
+short_minutes: 40
+max_height: 720    # transcode size to use
+groups:
+  feature: "Movies: World Classics"
+  short: "Movies: Shorts"
+  documentary: "Documentaries: Wikimedia Commons"

@@ -18,7 +18,7 @@ import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 
-from .. import net
+from .. import languages, net
 from ..models import Decision, Entry
 
 SCRAPE = "https://archive.org/services/search/v1/scrape"
@@ -128,6 +128,7 @@ def summarise(raw: dict) -> dict | None:
         "year": _year(meta.get("year"), meta.get("date")),
         "licenseurl": _first(meta.get("licenseurl")),
         "creator": _text(meta.get("director") or meta.get("creator"), 200),
+        "language": meta.get("language"),
         "videos": videos(raw.get("files") or []),
     }
 
@@ -233,7 +234,7 @@ def _movie_title(title: str, year: int | None) -> str:
 
 def movie_entry(identifier: str, summary: dict, video: dict, *, group: str, source: str = SOURCE,
                 license: str | None = None, attribution: str | None = None, title: str | None = None,
-                year: int | None = None, id_prefix: str = "ia") -> Entry:
+                year: int | None = None, id_prefix: str = "ia", langs: list[str] | None = None) -> Entry:
     year = year or summary.get("year")
     return Entry(
         id=f"{id_prefix}.{identifier}",
@@ -249,8 +250,14 @@ def movie_entry(identifier: str, summary: dict, video: dict, *, group: str, sour
         attribution=attribution,
         page=f"https://archive.org/details/{urllib.parse.quote(identifier)}",
         description=summary.get("description"),
+        languages=langs or [],
         extra={"creator": summary.get("creator")} if summary.get("creator") else {},
     )
+
+
+def item_languages(summary: dict, default: str | list | None) -> list[str]:
+    """The item's own language metadata when it has any, otherwise the configured default."""
+    return languages.normalise_all(summary.get("language")) or languages.normalise_all(default)
 
 
 def movies(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[Entry], list[Decision]]:
@@ -317,7 +324,8 @@ def movies(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
             group = cfg.get("shorts_group", "Movies: Shorts")
         entries.append(movie_entry(ident, summary, video, group=group,
                                    license=license_label(summary.get("licenseurl"), why),
-                                   attribution=cc_attribution(summary, why)))
+                                   attribution=cc_attribution(summary, why),
+                                   langs=item_languages(summary, col.get("language"))))
         per_collection[col["collection"]] = per_collection.get(col["collection"], 0) + 1
         decisions.append(Decision(SOURCE, ident, True, why))
     return entries, decisions
@@ -436,6 +444,9 @@ def series(cfg: dict, cache: MetadataCache, denylist: set[str]) -> tuple[list[En
                     attribution=cc_attribution(summary, kind),
                     page=f"https://archive.org/details/{urllib.parse.quote(ident)}",
                     description=summary.get("description"),
+                    languages=item_languages(summary, show.get("language")),
+                    tmdb=str(show["tmdb"]) if show.get("tmdb") else None,
+                    imdb=show.get("imdb"),
                     extra={"basis": show.get("basis")},
                 ))
             decisions.append(Decision(SOURCE, ident, True, f"series:{show['name']}"))

@@ -3,7 +3,7 @@ from freeplaylist import config, credits
 
 def test_every_configured_source_has_a_credit():
     sources = set(config.load("credits")["sources"])
-    used = {"iptv-org", "internet-archive"}
+    used = {"iptv-org", "internet-archive", "wikimedia-commons", "open-beelden"}
     used |= {p["credit"] for p in config.load("live_hosts")["platforms"]}
     cur = config.load("curated")
     used.add(cur["ia_defaults"]["source"])

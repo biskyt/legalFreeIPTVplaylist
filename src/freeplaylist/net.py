@@ -25,6 +25,10 @@ def get_bytes(url: str, *, timeout: float = 60, retries: int = 3) -> bytes:
         except urllib.error.HTTPError as e:
             if e.code < 500 and e.code != 429 or attempt == retries:
                 raise
+            retry_after = e.headers.get("Retry-After", "")
+            if retry_after.isdigit():  # rate limited: wait as long as the server asks (up to two minutes)
+                time.sleep(min(int(retry_after), 120))
+                continue
         except (urllib.error.URLError, TimeoutError, ConnectionError):
             if attempt == retries:
                 raise

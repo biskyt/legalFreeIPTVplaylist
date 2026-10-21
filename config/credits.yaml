@@ -67,3 +67,32 @@ sources:
     url: https://tubitv.com/
     provides: Free, ad-supported (FAST) channels
     license: Free to watch from Tubi; content and trademarks belong to Tubi and its partners
+
+  rakuten-tv:
+    name: Rakuten TV
+    url: https://www.rakuten.tv/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners
+    note: Availability varies by country.
+
+  xumo-play:
+    name: Xumo Play
+    url: https://play.xumo.com/
+    provides: Free, ad-supported (FAST) channels
+    license: Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners
+    note: Availability varies by country.
+
+  wikimedia-commons:
+    name: Wikimedia Commons
+    url: https://commons.wikimedia.org/
+    provides: Public-domain and freely licensed films and videos (category "Films in the public domain")
+    license: Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file
+    note: Each film's author and licence are listed in catalog.json and on its Commons page.
+
+  open-beelden:
+    name: Open Beelden (Netherlands Institute for Sound and Vision)
+    url: https://www.openbeelden.nl/
+    provides: Dutch archive films and newsreels
+    license: Public domain or CC BY / CC BY-SA, per item
+    attribution: "Nederlands Instituut voor Beeld en Geluid / Open Beelden"
+    note: Each item's maker and licence are listed in catalog.json and on its Open Beelden page.

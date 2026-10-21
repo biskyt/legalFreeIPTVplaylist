@@ -1,6 +1,7 @@
 # Internet Archive collections searched for movies, in priority order: an item found in more than one collection
 # takes the group of the first. `candidates` is how many of the most-downloaded items are considered; `max` is how
-# many are kept. Licence rules are explained in src/freeplaylist/sources/internet_archive.py and the README.
+# many are kept. `language` (ISO 639-3; zxx = silent) is used when an item doesn't state its own.
+# Licence rules are explained in src/freeplaylist/sources/internet_archive.py and the README.
 
 rules:
   pd_max_year: 1977   # "public domain" marks are only believed for works dated up to this year
@@ -14,31 +15,38 @@ shorts_group: "Movies: Shorts"
 
 collections:
   - collection: Film_Noir
+    language: eng
     group: "Movies: Noir"
     candidates: 700
     max: 200
   - collection: SciFi_Horror
+    language: eng
     group: "Movies: Sci-Fi & Horror"
     candidates: 600
     max: 200
   - collection: Comedy_Films
+    language: eng
     group: "Movies: Comedy"
     candidates: 600
     max: 150
   - collection: silent_films
+    language: zxx
     group: "Movies: Silent"
     candidates: 800
     max: 200
   - collection: classic_cartoons
+    language: eng
     group: "Movies: Cartoons"
     candidates: 100
     max: 80
     shorts_group: false   # cartoons are short by nature; keep them in their own group
   - collection: feature_films
+    language: eng
     group: "Movies: Classics"
     candidates: 2500
     max: 600
   - collection: prelinger
+    language: eng
     group: "Documentaries: Prelinger Archives"
     candidates: 600
     max: 150

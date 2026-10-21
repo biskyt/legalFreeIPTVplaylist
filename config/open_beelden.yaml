@@ -1,0 +1,6 @@
+# Dutch archive film from Open Beelden (https://www.openbeelden.nl), Netherlands Institute for Sound and Vision.
+# Licences accepted: public domain, CC0, CC BY, CC BY-SA. Most items are short newsreel clips, so only the
+# longest are kept.
+min_minutes: 3
+max: 400
+group: "Documentaries: Dutch archive"

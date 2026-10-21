@@ -1,4 +1,4 @@
-# M3U VOD convention (version 1)
+# M3U VOD convention (version 1.1)
 
 This is a small, open convention for publishing **movies and TV series in an ordinary extended M3U playlist**,
 so that IPTV apps can put them in Movies and Series sections instead of listing them as channels.
@@ -31,12 +31,27 @@ https://archive.org/download/Beverly_Hillbillies_Ep02_Getting_Settled/Beverly_Hi
 | `episode` | integer ≥ 1 | Episode number within the season. Optional; episodes without numbers keep playlist order. |
 | `year` | 4-digit integer | Release or first-broadcast year. Optional. |
 | `#EXTINF` duration | `-1`, or positive whole seconds | The standard M3U meaning: `-1` for live streams or unknown length, otherwise the running time. |
+| `tmdb-id` | integer | *(1.1)* The [TMDB](https://www.themoviedb.org/) id: of the movie for `movie`, of the TV series for `series` (so all of a show's episodes share it). Optional. |
+| `imdb-id` | `tt` + digits | *(1.1)* The IMDb id, with the same rule as `tmdb-id`. Optional. |
 
 The usual attributes keep their usual meaning:
 - `tvg-id`: a stable id;
 - `tvg-name`: the full title, e.g. `Show S01E02 - Title` for an episode;
 - `tvg-logo`: the poster or thumbnail;
 - `group-title`: the category. For movies this is the genre; for episodes, conventionally `Series: <series-name>`.
+
+The playlist header may name a TV guide (XMLTV) in the usual way: `#EXTM3U url-tvg="https://…/epg.xml.gz"`. Its
+channel ids match the live entries' `tvg-id`.
+
+### Language and country
+
+These two attributes are the existing de facto convention (used, for example, by iptv-org's playlists), not
+part of this one. They apply to every entry, live or not:
+
+| Attribute | Values | Meaning |
+|---|---|---|
+| `tvg-language` | English language names, `;`-separated, e.g. `English;Spanish` | The spoken languages. `No linguistic content` (ISO 639 `zxx`) means no dialogue, such as a silent film. |
+| `tvg-country` | ISO 3166-1 alpha-2 codes, `;`-separated, e.g. `DE;AT` | For live channels, where the feed is meant to be watched (its broadcast area). For films, the country of origin. |
 
 The `catchup`, `catchup-days` and `catchup-source` attributes are the existing de facto catch-up convention
 (Kodi IPTV Simple, TiviMate and others), not part of this one. They appear on live entries only, and only when
@@ -66,6 +81,8 @@ These keep playlists readable by every parser, including simple ones:
 2. Don't treat a file extension or a positive duration alone as proof of VOD. Some live services publish
    `.mp4` loops or durations.
 3. Ignore attributes you don't know.
+4. Where an app groups or filters by language or country, prefer `tvg-language` / `tvg-country` over guessing
+   from group names.
 
 ## Versioning
 
