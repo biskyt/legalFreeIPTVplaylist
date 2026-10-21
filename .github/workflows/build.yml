@@ -1,5 +1,7 @@
 name: Build playlists
 
+# Nightly and on demand only: harvesting is slow and shares other people's servers, so merges don't start a
+# build; changes take effect on the next run (or start one from the Actions tab).
 on:
   schedule:
     - cron: "17 4 * * *"   # daily, 04:17 UTC
@@ -13,9 +15,6 @@ on:
         description: "Or harvest only these sources (comma-separated: iptv-org, curated, internet-archive-series, internet-archive-movies, wikimedia-commons, open-beelden)"
         type: string
         default: ""
-  push:
-    branches: [main]
-    paths: ["src/**", "config/**", "pyproject.toml", ".github/workflows/build.yml"]
 
 permissions:
   contents: write   # to save state/ on the `state` branch

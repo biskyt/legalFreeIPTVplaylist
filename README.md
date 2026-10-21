@@ -184,8 +184,8 @@ the `state` branch), start the workflow by hand with **only** set to one or more
 (`--only=...` locally). Each run publishes what has been harvested so far; sources not harvested yet are left
 out until their stage runs.
 
-**Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC, on
-manual runs, and on pushes that change code or config. It deploys to GitHub Pages. If a build comes out broken
+**Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC and on
+manual runs (Actions tab → Build playlists → Run workflow); merges don't start a build. It deploys to GitHub Pages. If a build comes out broken
 (an upstream API down, too few entries), the job fails and the previous playlists stay online. To enable
 it: **Settings → Pages → Source: GitHub Actions**.
 
