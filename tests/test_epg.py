@@ -1,7 +1,8 @@
 import gzip
 import json
+from datetime import date
 
-from freeplaylist import epg, net
+from freeplaylist import epg, net, schedule
 
 XMLTV = b"""<?xml version="1.0"?><tv>
 <channel id="{a}"><display-name>A</display-name></channel>
@@ -26,11 +27,11 @@ def test_plan_routes_channels_to_fast_and_slow_sources(entry):
         {"channel": "Pluto1.us", "feed": None, "site": "i.mjh.nz", "site_id": "PlutoTV/us#abc", "lang": "en"},
         {"channel": "Local.fr", "feed": "SD", "site": "tv.example", "site_id": "42", "lang": "fr"},
     ]
-    plan = epg.plan(entries, guides, groups=7, night=0)
+    plan = epg.plan(entries, guides, schedule.Tonight({"live_groups": 1}, date(2026, 10, 19)))
     assert plan["iptv_epg"]["de"] == {"3sat.de": ["3sat.de@SD"]}  # main feed only
     assert plan["mjh"]["https://raw.githubusercontent.com/matthuisman/i.mjh.nz/master/PlutoTV/us.xml"] == {
         "abc": ["Pluto1.us@SD"]}
-    assert plan["slow"] == [["tv.example", "42", "fr", "Local.fr@SD", "Local & Co"]]
+    assert plan["slow"] == plan["tonight"] == [["tv.example", "42", "fr", "Local.fr@SD", "Local & Co"]]
     xml = epg.channels_xml(plan["slow"])
     assert 'xmltv_id="Local.fr@SD">Local &amp; Co</channel>' in xml
 

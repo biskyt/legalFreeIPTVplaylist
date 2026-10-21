@@ -67,10 +67,10 @@ def site_hosts(url: str, fetch=net.probe) -> tuple[set[str], bool]:
         return set(), False
 
 
-def find_hosts(sites: set[str], state: dict, *, groups: int = 7, night: int = 0, everything: bool = False,
+def find_hosts(sites: set[str], state: dict, tonight: schedule.Tonight, *, everything: bool = False,
                max_sites: int = 2500, workers: int = 16, fetch=net.probe) -> dict[str, set[str]]:
-    """{website: hosts it mentions} for every site. Sites are split into `groups` by name and one group is
-    re-fetched each night (`night`), so each site is checked about weekly; new sites are fetched at once."""
+    """{website: hosts it mentions} for every site. Sites are split into the schedule's nightly groups by name and
+    one group is re-fetched each night, so each site is checked about weekly; new sites are fetched at once."""
     now = time.time()
 
     def stale(site: str) -> bool:
@@ -78,9 +78,9 @@ def find_hosts(sites: set[str], state: dict, *, groups: int = 7, night: int = 0,
         if rec is None or everything:
             return True
         age = now - rec.get("t", 0)
-        if schedule.group(net.host_of(site), groups) == night:
+        if tonight.is_turn(net.host_of(site)):
             return age > 20 * 3600  # its night: refresh unless already done today
-        return age > (groups + 1) * 86400  # safety net if a night was missed
+        return age > (tonight.groups + 1) * 86400  # safety net if a night was missed
 
     # New sites first, then the oldest results; spread over hosts so no one server gets a run of requests.
     todo = sorted((s for s in sites if stale(s)), key=lambda s: state.get(s, {}).get("t", 0))[:max_sites]

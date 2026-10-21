@@ -18,16 +18,12 @@ from .models import Entry
 SPARQL = "https://query.wikidata.org/sparql"
 log = logging.getLogger("freeplaylist")
 
-QUERIES = {
-    # Internet Archive identifier -> ids and poster
-    "ia": """SELECT ?key ?tmdb ?imdb ?poster WHERE { ?f wdt:P724 ?key .
-        OPTIONAL { ?f wdt:P4947 ?tmdb } OPTIONAL { ?f wdt:P345 ?imdb } OPTIONAL { ?f wdt:P3383 ?poster }
-        FILTER(BOUND(?tmdb) || BOUND(?imdb) || BOUND(?poster)) }""",
-    # Commons video file -> ids and poster
-    "commons": """SELECT ?key ?tmdb ?imdb ?poster WHERE { ?f wdt:P10 ?key .
-        OPTIONAL { ?f wdt:P4947 ?tmdb } OPTIONAL { ?f wdt:P345 ?imdb } OPTIONAL { ?f wdt:P3383 ?poster }
-        FILTER(BOUND(?tmdb) || BOUND(?imdb) || BOUND(?poster)) }""",
-}
+TTL = 7 * 86400
+# Which Wikidata property links a film to the item it's published as: Internet Archive id, or Commons video.
+LINKS = {"ia": "P724", "commons": "P10"}
+QUERY = """SELECT ?key ?tmdb ?imdb ?poster WHERE {{ ?f wdt:{link} ?key .
+    OPTIONAL {{ ?f wdt:P4947 ?tmdb }} OPTIONAL {{ ?f wdt:P345 ?imdb }} OPTIONAL {{ ?f wdt:P3383 ?poster }}
+    FILTER(BOUND(?tmdb) || BOUND(?imdb) || BOUND(?poster)) }}"""
 
 
 def _query(sparql: str) -> list[dict]:
@@ -42,15 +38,15 @@ def _commons_name(url: str) -> str:
     return urllib.parse.unquote(url.rsplit("/", 1)[-1]).replace(" ", "_")
 
 
-def load(state: dict, ttl_days: int = 7) -> dict[str, dict[str, dict]]:
+def load(state: dict) -> dict[str, dict[str, dict]]:
     """{"ia": {identifier: ids}, "commons": {file name: ids}}, from cache when fresh or when Wikidata fails."""
     now = time.time()
-    for name, sparql in QUERIES.items():
+    for name, link in LINKS.items():
         cached = state.get(name)
-        if cached and now - cached.get("t", 0) < ttl_days * 86400:
+        if cached and now - cached.get("t", 0) < TTL:
             continue
         try:
-            rows = _query(sparql)
+            rows = _query(QUERY.format(link=link))
         except Exception as e:  # noqa: BLE001 - keep the cached copy; enrichment is optional
             log.warning("wikidata %s query failed: %s", name, e)
             continue
@@ -62,7 +58,7 @@ def load(state: dict, ttl_days: int = 7) -> dict[str, dict[str, dict]]:
                 if r.get(field) and field not in rec:
                     rec[field] = r[field]
         state[name] = {"t": now, "rows": table}
-    return {name: (state.get(name) or {}).get("rows", {}) for name in QUERIES}
+    return {name: (state.get(name) or {}).get("rows", {}) for name in LINKS}
 
 
 def poster_url(commons_file_url: str, width: int = 400) -> str:
@@ -79,7 +75,7 @@ def apply(entries: list[Entry], tables: dict[str, dict[str, dict]]) -> int:
         if "archive.org/details/" in e.page:
             rec = tables["ia"].get(urllib.parse.unquote(e.page.rsplit("/", 1)[-1]))
         elif "commons.wikimedia.org" in e.page:
-            rec = tables["commons"].get(urllib.parse.unquote(e.page.rsplit("File:", 1)[-1]).replace(" ", "_"))
+            rec = tables["commons"].get(_commons_name(e.page.rsplit("File:", 1)[-1]))
         else:
             rec = None
         if not rec:

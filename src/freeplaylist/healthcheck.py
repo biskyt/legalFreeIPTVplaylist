@@ -58,9 +58,6 @@ class Checker:
         self.timeout = timeout
         self._probe = probe
 
-    def _get(self, url: str, ua: str | None, ref: str | None) -> net.Probe:
-        return self._probe(url, user_agent=ua, referrer=ref, timeout=self.timeout)
-
     def check(self, url: str, ua: str | None = None, ref: str | None = None, labels=()) -> Result:
         try:
             return self._check(url, ua, ref, labels)
@@ -68,7 +65,7 @@ class Checker:
             return Result("dead", f"bad URL: {e}")
 
     def _check(self, url: str, ua: str | None, ref: str | None, labels) -> Result:
-        p = self._get(url, ua, ref)
+        p = self._probe(url, user_agent=ua, referrer=ref, timeout=self.timeout)
         if p.status in (200, 206):
             path = urllib.parse.urlparse(url).path.lower()
             hls = path.endswith((".m3u8", ".m3u")) or _is_playlist(p.body)
@@ -79,7 +76,8 @@ class Checker:
             variant = _first_variant(p.body)
             if variant is None:
                 return Result("ok")
-            v = self._get(urllib.parse.urljoin(p.final_url, variant), ua, ref)
+            v = self._probe(urllib.parse.urljoin(p.final_url, variant), user_agent=ua, referrer=ref,
+                            timeout=self.timeout)
             if v.status in (200, 206) and _is_playlist(v.body):
                 return Result("ok")
             return Result(_failure(v), f"variant: {v.error or 'not a playlist'}")
@@ -95,7 +93,8 @@ def _failure(p: net.Probe) -> str:
     return "dead"
 
 
-def _candidates(e: Entry) -> list[dict]:
+def candidates(e: Entry) -> list[dict]:
+    """An entry's streams, best first: the alternatives a source found, or just its own URL."""
     return e.extra.get("candidates") or [
         {"url": e.url, "user_agent": e.user_agent, "referrer": e.referrer, "labels": e.extra.get("labels", [])}
     ]
@@ -113,12 +112,12 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[E
     due = due or (lambda e: True)
 
     def wanted(e: Entry) -> bool:
-        return any(c["url"] not in state for c in _candidates(e)) or due(e)
+        return any(c["url"] not in state for c in candidates(e)) or due(e)
 
     def task(e: Entry) -> tuple[Entry | None, Decision, list[tuple[str, Result]]]:
         tried: list[tuple[dict, Result]] = []
         geo = None
-        for c in _candidates(e):
+        for c in candidates(e):
             r = checker.check(c["url"], c.get("user_agent"), c.get("referrer"), c.get("labels", ()))
             tried.append((c, r))
             if r.status == "ok":
@@ -139,19 +138,19 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[E
 
     def cached(e: Entry) -> Entry | None:
         """The entry with its best stream by the last check, or None if that check found them all dead."""
-        for c in _candidates(e):
+        for c in candidates(e):
             rec = state.get(c["url"]) or {}
             if rec.get("ok") and rec.get("fails", 0) < MAX_FAILS:
                 return _use(e, c)
         if keep_on_error:
-            for c in _candidates(e):
+            for c in candidates(e):
                 rec = state.get(c["url"]) or {}
                 if rec.get("unconfirmed") and not rec.get("fails"):
                     return _use(e, c)
         return None
 
     # One host after another, so the workers spread over many servers instead of queueing on one.
-    checked = net.round_robin((e for e in entries if wanted(e)), key=lambda e: net.host_of(_candidates(e)[0]["url"]))
+    checked = net.round_robin((e for e in entries if wanted(e)), key=lambda e: net.host_of(candidates(e)[0]["url"]))
     with ThreadPoolExecutor(checker.workers) as pool:
         outcomes = dict(zip((id(e) for e in checked), pool.map(task, checked), strict=True))
 

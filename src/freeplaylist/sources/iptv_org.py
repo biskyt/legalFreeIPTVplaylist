@@ -12,6 +12,7 @@ import ipaddress
 import json
 import re
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -37,12 +38,8 @@ def fetch_api(api_dir: Path | None = None, files: tuple[str, ...] = FILES) -> di
     if api_dir:
         return {n: json.loads(p.read_text(encoding="utf-8")) if (p := api_dir / f"{n}.json").exists() else []
                 for n in files}
-    return {n: net.get_json(f"{API}/{n}.json") for n in files}
-
-
-def country_code(code: str) -> str:
-    """iptv-org writes the United Kingdom as UK; ISO 3166-1 (and tvg-country) uses GB."""
-    return "GB" if code.upper() == "UK" else code.upper()
+    with ThreadPoolExecutor(len(files)) as pool:  # independent downloads, fetched side by side
+        return dict(zip(files, pool.map(lambda n: net.get_json(f"{API}/{n}.json"), files), strict=True))
 
 
 def feed_countries(feed: dict | None, channel: dict) -> list[str]:
@@ -51,11 +48,11 @@ def feed_countries(feed: dict | None, channel: dict) -> list[str]:
     for area in (feed or {}).get("broadcast_area") or []:
         kind, _, code = area.partition("/")
         if kind in ("c", "s") and code:
-            cc = country_code(code.split("-")[0])
+            cc = languages.country_code(code.split("-")[0])
             if cc not in out:
                 out.append(cc)
     if not out and channel.get("country"):
-        out.append(country_code(channel["country"]))
+        out.append(languages.country_code(channel["country"]))
     return out
 
 
@@ -227,8 +224,6 @@ def build(api: dict[str, list], rules: Rules,
     blocked = {b["channel"]: b.get("reason", "blocked") for b in api["blocklist"]}
     feeds = {(f["channel"], f["id"]): f for f in api["feeds"]}
     main_feeds = {f["channel"]: f for f in api["feeds"] if f.get("is_main")}
-    languages.load(api.get("languages") or [])
-    languages.load_countries(api.get("countries") or [])
     categories = {c["id"]: c["name"] for c in api["categories"]}
     logos: dict[tuple[str, str | None], str] = {}
     for logo in api["logos"]:

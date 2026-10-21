@@ -54,14 +54,22 @@ class Result:
     decisions: list[Decision] = field(default_factory=list)
 
 
-def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]:
-    """All candidate entries from every source, before health checks, and the sources harvested tonight.
+@dataclass
+class Collected:
+    entries: list[Entry]
+    decisions: list[Decision]
+    sources: dict  # credit records
+    harvested: set[str]  # sources harvested tonight
+    missing: set[str]  # sources with no results yet (a staged first harvest)
+
+
+def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
+    """All candidate entries from every source, before health checks.
 
     A source that isn't due tonight (config/schedule.yaml) is taken from its snapshot; see snapshots.py.
     """
     load = lambda name: config.load(name, opts.config_dir)  # noqa: E731
-    sched = load("schedule")
-    day = opts.day or datetime.now(UTC).date()
+    day = tonight.day
     ia_state_path = opts.state_dir / "ia_cache.json"
     cache = internet_archive.MetadataCache(config.load_state(ia_state_path))
     entries: list[Entry] = []
@@ -80,7 +88,7 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]
                 missing.add(key)
                 log.info("%s: no snapshot yet; left out until its stage runs", key)
                 return
-        elif opts.all or opts.only is not None or snap is None or schedule.due(sched, key, day):
+        elif opts.all or opts.only is not None or snap is None or tonight.due(key):
             try:
                 found = harvest()
             except Exception as e:  # noqa: BLE001 - fall back to the last good results
@@ -100,9 +108,9 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]
         decisions.extend(found[1])
 
     # iptv-org also supplies the language and country names every source uses.
-    api = iptv_org.fetch_api(opts.api_dir)
-    languages.load(api.get("languages") or [])
-    languages.load_countries(api.get("countries") or [])
+    names = iptv_org.fetch_api(opts.api_dir, ("languages", "countries"))
+    languages.load(names["languages"])
+    languages.load_countries(names["countries"])
 
     if opts.vod:
         # Order matters: when two sources offer the same film, the earlier one wins (see _dedupe), so curated
@@ -129,7 +137,7 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]
         found = curated.build({"direct": load("curated").get("direct")}, cache)
         entries.extend(e for e in found[0] if e.kind == "live")
     if opts.live:
-        section("iptv-org", lambda: _live(opts, api, load, sched, day))
+        section("iptv-org", lambda: _live(opts, load, tonight))
     entries, dropped = _dedupe(entries)
     if opts.vod and opts.enrich:
         wd_path = opts.state_dir / "wikidata.json"
@@ -137,12 +145,11 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]
         matched = enrich.apply(entries, enrich.load(wd_state))
         config.save_state(wd_path, wd_state)
         log.info("wikidata: ids for %d movies", matched)
-    if missing:
-        opts.enforce_minimums = False  # a staged first harvest: some feeds fill up in later stages
-    return entries, decisions + dropped, load("credits").get("sources") or {}, harvested
+    return Collected(entries, decisions + dropped, load("credits").get("sources") or {}, harvested, missing)
 
 
-def _live(opts: Options, api: dict, load, sched: dict, day) -> tuple[list[Entry], list[Decision]]:
+def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], list[Decision]]:
+    api = iptv_org.fetch_api(opts.api_dir)
     hosts_cfg = load("live_hosts")
     rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
     site_links = None
@@ -151,9 +158,8 @@ def _live(opts: Options, api: dict, load, sched: dict, day) -> tuple[list[Entry]
         path = opts.state_dir / "website_links.json"
         state = config.load_state(path)
         sites = iptv_org.unverified_sites(api, rules)
-        groups = sched.get("live_groups", 7)
-        site_links = website_check.find_hosts(sites, state, groups=groups, night=schedule.tonight(day, groups),
-                                              everything=opts.all, max_sites=check.get("max_sites", 2500))
+        site_links = website_check.find_hosts(sites, state, tonight, everything=opts.all,
+                                              max_sites=check.get("max_sites", 2500))
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
         log.info("website check: %d sites with unverified streams", len(sites))
     return iptv_org.build(api, rules, site_links)
@@ -186,20 +192,16 @@ def _dedupe(entries: list[Entry]) -> tuple[list[Entry], list[Decision]]:
     return kept, dropped
 
 
-def check_health(entries: list[Entry], opts: Options, harvested: set[str]) -> tuple[list[Entry], list[Decision]]:
+def check_health(entries: list[Entry], opts: Options, tonight: schedule.Tonight,
+                 harvested: set[str]) -> tuple[list[Entry], list[Decision]]:
     """Checks tonight's share of streams (see config/schedule.yaml); the rest keep their last result."""
-    sched = config.load("schedule", opts.config_dir)
-    day = opts.day or datetime.now(UTC).date()
-    groups = sched.get("live_groups", 7)
-    night = schedule.tonight(day, groups)
-    recheck = sched.get("vod_recheck", 0.25)
+    recheck = tonight.cfg.get("vod_recheck", 0.25)
     rng = random.Random()
     path = opts.state_dir / "health.json"
     state = config.load_state(path)
 
     def live_due(e: Entry) -> bool:
-        first = (e.extra.get("candidates") or [{"url": e.url}])[0]["url"]
-        return opts.all or schedule.group(net.host_of(first), groups) == night
+        return opts.all or tonight.is_turn(net.host_of(healthcheck.candidates(e)[0]["url"]))
 
     def vod_due(e: Entry) -> bool:
         return opts.all or (e.extra.get("section") in harvested and rng.random() < recheck)
@@ -208,10 +210,10 @@ def check_health(entries: list[Entry], opts: Options, harvested: set[str]) -> tu
     vod = [e for e in entries if e.kind != "live"]
     live, d1 = healthcheck.run(live, state, healthcheck.Checker(), due=live_due)
     vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), due=vod_due, keep_on_error=True)
-    urls = {c["url"] for e in entries for c in (e.extra.get("candidates") or [{"url": e.url}])}
+    urls = {c["url"] for e in entries for c in healthcheck.candidates(e)}
     config.save_state(path, healthcheck.prune(state, urls))
     log.info("health: kept %d live, %d vod (live host group %d of %d checked tonight)", len(live), len(vod),
-             night + 1, groups)
+             tonight.night + 1, tonight.groups)
     return live + vod, d1 + d2
 
 
@@ -333,26 +335,27 @@ def write_site(out: Path, built: dict[str, feeds.Feed], decisions: list[Decision
 
 
 def run(opts: Options) -> Result:
-    entries, decisions, sources, harvested = collect(opts)
+    tonight = schedule.Tonight(config.load("schedule", opts.config_dir), opts.day or datetime.now(UTC).date())
+    got = collect(opts, tonight)
+    entries, decisions, sources = got.entries, got.decisions, got.sources
     absent = credits.missing(entries, sources)
     if absent:
         raise BuildError(f"no credit record in credits.yaml for: {', '.join(sorted(absent))}")
     if opts.health:
-        entries, d = check_health(entries, opts, harvested)
+        entries, d = check_health(entries, opts, tonight, got.harvested)
         decisions += d
     feed_cfg = config.load("feeds", opts.config_dir)
     built, d = make_feeds(entries, feed_cfg)
     decisions += d
-    problems = validate(built, feed_cfg, opts.enforce_minimums)
+    # During a staged first harvest some feeds only fill up in later stages, so their minimums can't apply yet.
+    problems = validate(built, feed_cfg, opts.enforce_minimums and not got.missing)
     if problems:
         raise BuildError("; ".join(problems))
     guide = feed_cfg.get("guide")
     if guide and opts.live:
         # The guide is built after this, by the workflow: iptv-org's grabber for tonight's group of slow channels,
         # then `freeplaylist epg`, which adds the ready-made guides and merges everything (see epg.py).
-        groups = config.load("schedule", opts.config_dir).get("live_groups", 7)
-        night = schedule.tonight(opts.day or datetime.now(UTC).date(), groups)
         guides = iptv_org.fetch_api(opts.api_dir, ("guides",))["guides"]
-        epg.write_plan(opts.state_dir, epg.plan(built["live"].entries, guides, groups, night))
+        epg.write_plan(opts.state_dir, epg.plan(built["live"].entries, guides, tonight))
     write_site(opts.out, built, decisions, sources, f"{PAGES}/{guide}" if guide else None)
     return Result(built, decisions)

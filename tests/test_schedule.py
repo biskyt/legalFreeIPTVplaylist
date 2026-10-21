@@ -7,12 +7,15 @@ CFG = {"sources": {"weekly": {"days": [3]}, "fortnightly": {"days": [4], "every_
 
 
 def test_due():
+    def on(day):
+        return schedule.Tonight(CFG, day)
     thursday = date(2026, 10, 22)  # ISO week 43
-    assert schedule.due(CFG, "weekly", thursday)
-    assert not schedule.due(CFG, "weekly", date(2026, 10, 21))
-    assert schedule.due(CFG, "unlisted", thursday)
-    assert not schedule.due(CFG, "fortnightly", date(2026, 10, 23))  # Friday, odd week
-    assert schedule.due(CFG, "fortnightly", date(2026, 10, 30))  # Friday, even week
+    assert on(thursday).due("weekly")
+    assert not on(date(2026, 10, 21)).due("weekly")
+    assert on(thursday).due("unlisted")
+    assert not on(date(2026, 10, 23)).due("fortnightly")  # Friday, odd week
+    assert on(date(2026, 10, 30)).due("fortnightly")  # Friday, even week
+    assert on(thursday).night == 3 and on(thursday).groups == 7
 
 
 def test_groups_are_stable_and_spread():

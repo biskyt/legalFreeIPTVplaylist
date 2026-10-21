@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 
 from .. import languages, net
 from ..models import Decision, Entry
-from .internet_archive import license_kind
+from .internet_archive import _movie_title, _year, license_kind
 
 OAI = "https://www.openbeelden.nl/feeds/oai/"
 SITE = "https://www.openbeelden.nl"
@@ -49,8 +49,8 @@ def parse_record(rec: ET.Element) -> tuple[str, dict | None]:
     def text(tag: str) -> str:
         return (oi.findtext(f"oi:{tag}", "", NS) or "").strip()
 
-    media = {(m.get("format"), (m.text or "").strip()) for m in oi.findall("oi:medium", NS)}
-    mp4 = sorted((u for f, u in media if u.endswith(".mp4")), key=lambda u: "hd" not in u)
+    media = [(m.get("format"), (m.text or "").strip()) for m in oi.findall("oi:medium", NS)]
+    mp4 = [u for f, u in sorted(media, key=lambda fu: fu[0] != "hd") if u.endswith(".mp4")]  # HD first
     thumb = next((u for f, u in media if f == "thumbnail"), None)
     page = text("attributionURL")
     return ident, {
@@ -58,7 +58,7 @@ def parse_record(rec: ET.Element) -> tuple[str, dict | None]:
         "description": text("description")[:600] or None,
         "date": text("date"),
         "seconds": seconds(text("extent")),
-        "mp4": next((u for f, u in sorted(media) if f == "hd" and u.endswith(".mp4")), mp4[0] if mp4 else None),
+        "mp4": mp4[0] if mp4 else None,
         "thumb": urllib.parse.urljoin(SITE, thumb) if thumb else None,
         "license": text("license"),
         "language": text("language"),
@@ -129,7 +129,7 @@ def harvest(state: dict, fetch=net.get_bytes, pause: float = 1.0, max_pages: int
 def build(cfg: dict, state: dict, fetch=net.get_bytes, pause: float = 1.0) -> tuple[list[Entry], list[Decision]]:
     harvest(state, fetch, pause, max_pages=cfg.get("max_pages", 30))
     decisions: list[Decision] = []
-    picked: list[tuple[str, dict]] = []
+    picked: list[tuple[str, dict, str]] = []
     for ident, r in state["records"].items():
         kind = license_kind(r.get("license"))
         if kind not in ("pd", "cc-by", "cc-by-sa"):
@@ -139,14 +139,14 @@ def build(cfg: dict, state: dict, fetch=net.get_bytes, pause: float = 1.0) -> tu
         elif (r.get("seconds") or 0) < cfg.get("min_minutes", 3) * 60:
             reason = "too-short"
         else:
-            picked.append((ident, r))
+            picked.append((ident, r, kind))
             continue
         decisions.append(Decision(SOURCE, ident, False, reason))
-    picked.sort(key=lambda ir: -(ir[1]["seconds"] or 0))
+    picked.sort(key=lambda irk: -(irk[1]["seconds"] or 0))
     entries = []
-    for ident, r in picked[: cfg.get("max", 400)]:
-        year = int(r["date"][:4]) if r.get("date", "")[:4].isdigit() else None
-        title = f"{r['title']} ({year})" if year and str(year) not in r["title"] else r["title"]
+    for ident, r, kind in picked[: cfg.get("max", 400)]:
+        year = _year(r.get("date"))
+        title = _movie_title(r["title"], year)
         entries.append(Entry(
             id=f"openbeelden.{ident.rsplit(':', 1)[-1]}",
             title=title,
@@ -165,6 +165,6 @@ def build(cfg: dict, state: dict, fetch=net.get_bytes, pause: float = 1.0) -> tu
             page=r.get("page"),
             description=r.get("description"),
         ))
-        decisions.append(Decision(SOURCE, ident, True, license_kind(r.get("license")) or ""))
-    decisions += [Decision(SOURCE, i, False, "cap") for i, _ in picked[cfg.get("max", 400):]]
+        decisions.append(Decision(SOURCE, ident, True, kind))
+    decisions += [Decision(SOURCE, i, False, "cap") for i, _, _ in picked[cfg.get("max", 400):]]
     return entries, decisions

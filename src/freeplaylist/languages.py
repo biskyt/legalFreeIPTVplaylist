@@ -77,10 +77,16 @@ _COUNTRIES = {
 }
 
 
+def country_code(code: str) -> str:
+    """ISO 3166-1 alpha-2 for a country code as iptv-org writes it: the United Kingdom is UK there, GB in ISO."""
+    code = code.upper()
+    return "GB" if code == "UK" else code
+
+
 def load_countries(entries: list[dict]) -> None:
     """Use iptv-org's country list ([{"code": "US", "name": "United States"}, ...]) for lookups by name."""
     for item in entries:
-        _COUNTRIES.setdefault(item["name"].lower(), "GB" if item["code"] == "UK" else item["code"])
+        _COUNTRIES.setdefault(item["name"].lower(), country_code(item["code"]))
 
 
 def country(name: str) -> str | None:

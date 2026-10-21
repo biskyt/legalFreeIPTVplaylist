@@ -7,13 +7,12 @@ played from Commons' VP9 WebM transcodes (Theora .ogv originals don't play on mo
 
 from __future__ import annotations
 
-import html
 import re
 import urllib.parse
 
 from .. import languages, net
 from ..models import Decision, Entry
-from .internet_archive import _movie_title
+from .internet_archive import _movie_title, _slug, _text
 
 API = "https://commons.wikimedia.org/w/api.php"
 SOURCE = "wikimedia-commons"
@@ -22,7 +21,6 @@ _LANGUAGE_CAT = re.compile(r"^Category:(.+?)-language (?:films|videos)$")
 _COUNTRY_CAT = re.compile(r"^Category:(?:\d{4} )?(?:films|videos)(?: of \d{4})? (?:of|from) (.+)$", re.I)
 _SILENT_CAT = re.compile(r"^Category:Silent (?:films|videos)", re.I)
 _DOC_CAT = re.compile(r"documentar", re.I)
-_TAGS = re.compile(r"<[^>]+>")
 _YEAR = re.compile(r"\b(18[89]\d|19\d\d|20[0-2]\d)\b")
 
 
@@ -53,9 +51,8 @@ def fetch(query: str, limit: int) -> list[dict]:
     return pages[:limit]
 
 
-def _meta(info: dict, key: str) -> str:
-    value = (info.get("extmetadata") or {}).get(key, {}).get("value") or ""
-    return " ".join(html.unescape(_TAGS.sub(" ", str(value))).split())
+def _meta(info: dict, key: str, limit: int = 600) -> str:
+    return _text((info.get("extmetadata") or {}).get(key, {}).get("value"), limit) or ""
 
 
 def best_video(info: dict, max_height: int = 720) -> str | None:
@@ -130,7 +127,7 @@ def build(cfg: dict, exclude_titles: str | None = None) -> tuple[list[Entry], li
             artist = _meta(info, "Artist")
             page_url = info.get("descriptionurl") or f"https://commons.wikimedia.org/wiki/{urllib.parse.quote(title)}"
             entries.append(Entry(
-                id=f"commons.{re.sub(r'[^A-Za-z0-9]+', '_', name).strip('_')}",
+                id=f"commons.{_slug(name)}",
                 title=_movie_title(clean_title(_meta(info, "ObjectName") or name), year),
                 url=url,
                 group=group,
@@ -144,7 +141,7 @@ def build(cfg: dict, exclude_titles: str | None = None) -> tuple[list[Entry], li
                 license=licence,
                 attribution=f"{name}{f' by {artist}' if artist else ''}, {licence}, via Wikimedia Commons",
                 page=page_url,
-                description=_meta(info, "ImageDescription")[:600] or None,
+                description=_meta(info, "ImageDescription") or None,
             ))
             decisions.append(Decision(SOURCE, title, True, "free-licence"))
     entries.sort(key=lambda e: -(e.duration or 0))

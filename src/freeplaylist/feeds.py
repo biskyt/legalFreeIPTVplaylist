@@ -29,8 +29,7 @@ def _sort_key(e: Entry):
         return (e.series_name or "").lower(), e.season or 0, e.episode or 0, e.title.lower()
     # By country; within a country, broadcasters' own channels before free streaming services (Pluto TV etc.);
     # then by group and name.
-    country = e.group.rpartition(" | ")[0]
-    return country.lower(), bool(e.extra.get("platform")), e.group.lower(), e.title.lower()
+    return (e.countries or [""])[0], bool(e.extra.get("platform")), e.group.lower(), e.title.lower()
 
 
 def build(name: str, cfg: dict, entries: list[Entry]) -> tuple[Feed, list[Decision]]:
@@ -59,16 +58,18 @@ def combine(name: str, cfg: dict, feeds: dict[str, Feed]) -> Feed:
 def by_language(feeds: dict[str, Feed], members: list[str], min_entries: int) -> dict[str, Feed]:
     """languages/<code>: the already-rendered lines of every entry in that language, from each member feed in
     turn. Films without dialogue (zxx) suit any audience, so they join every language's feed."""
-    counts: dict[str, int] = {}
-    for m in members:
-        for e in feeds[m].entries:
-            for code in e.languages:
-                if code != languages.NO_DIALOGUE:
-                    counts[code] = counts.get(code, 0) + 1
+    rows = [(e, line) for m in members for e, line in zip(feeds[m].entries, feeds[m].lines, strict=True)]
+    by_code: dict[str, list[int]] = {}
+    silent: list[int] = []
+    for i, (e, _) in enumerate(rows):
+        if e.kind != "live" and languages.NO_DIALOGUE in e.languages:
+            silent.append(i)
+        for code in e.languages:
+            if code != languages.NO_DIALOGUE:
+                by_code.setdefault(code, []).append(i)
     out = {}
-    for code in sorted(c for c, n in counts.items() if n >= min_entries):
-        picked = [(e, line) for m in members for e, line in zip(feeds[m].entries, feeds[m].lines, strict=True)
-                  if code in e.languages or (e.kind != "live" and languages.NO_DIALOGUE in e.languages)]
+    for code in sorted(c for c, idx in by_code.items() if len(idx) >= min_entries):
+        picked = [rows[i] for i in sorted(set(by_code[code]) | set(silent))]  # in feed order
         out[f"languages/{code}"] = Feed(f"languages/{code}", languages.name(code), [e for e, _ in picked],
                                         [line for _, line in picked])
     return out

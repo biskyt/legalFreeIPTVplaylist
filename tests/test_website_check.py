@@ -1,6 +1,7 @@
+from datetime import date
 from pathlib import Path
 
-from freeplaylist import config, net
+from freeplaylist import config, net, schedule
 from freeplaylist.sources import iptv_org, website_check
 
 FIXTURES = Path(__file__).parent / "fixtures" / "iptv_org"
@@ -33,9 +34,10 @@ def test_cache_and_retry():
         return net.Probe(None, url, b"", "timeout")
 
     state = {}
-    website_check.find_hosts({"https://down.example/"}, state, fetch=fetch)
+    tonight = schedule.Tonight({}, date(2026, 10, 21))
+    website_check.find_hosts({"https://down.example/"}, state, tonight, fetch=fetch)
     assert state["https://down.example/"]["ok"] is False
-    website_check.find_hosts({"https://down.example/"}, state, fetch=fetch)
+    website_check.find_hosts({"https://down.example/"}, state, tonight, fetch=fetch)
     assert len(calls) == 1  # not retried within a day
 
 

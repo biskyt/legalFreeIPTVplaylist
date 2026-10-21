@@ -20,6 +20,8 @@ import io
 import json
 import logging
 import re
+import shutil
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -27,7 +29,7 @@ from datetime import datetime
 from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 
-from . import net, schedule
+from . import languages, net, schedule
 from .models import Entry
 
 log = logging.getLogger("freeplaylist")
@@ -38,11 +40,10 @@ _REFRESH = re.compile(rb"""http-equiv=["']refresh["'][^>]*url=['"]?([^'">]+)""",
 
 def _channel_country(channel_id: str) -> str:
     """iptv-epg.org file code for an iptv-org channel id: "3sat.de" -> "de", "BBCOne.uk" -> "gb"."""
-    cc = channel_id.rsplit(".", 1)[-1].lower()
-    return "gb" if cc == "uk" else cc
+    return languages.country_code(channel_id.rsplit(".", 1)[-1]).lower()
 
 
-def plan(entries: list[Entry], guides: list[dict], groups: int, night: int) -> dict:
+def plan(entries: list[Entry], guides: list[dict], tonight: schedule.Tonight) -> dict:
     """Which guide covers each live channel: {"iptv_epg": {cc: {their id: [our ids]}}, "mjh": {url: {...}},
     "slow": [[site, site_id, lang, our id, name], ...], "tonight": [...the slow ones in tonight's group]}."""
     live = [e for e in entries if e.kind == "live"]
@@ -69,8 +70,8 @@ def plan(entries: list[Entry], guides: list[dict], groups: int, night: int) -> d
                 out["mjh"][MJH.format(path)].setdefault(their_id, []).append(e.id)
             else:
                 out["slow"].append([g["site"], g["site_id"], g.get("lang") or "en", e.id, e.title])
-    out["tonight"] = [s for s in out["slow"] if schedule.group(s[3], groups) == night]
-    out["night"] = night
+    out["tonight"] = [s for s in out["slow"] if tonight.is_turn(s[3])]
+    out["night"] = tonight.night
     return {k: dict(v) if isinstance(v, defaultdict) else v for k, v in out.items()}
 
 
@@ -113,16 +114,18 @@ def _stop_time(value: str) -> float:
 
 class Merger:
     """Collects channels and programmes from several XMLTV files under our ids; the first source to cover a
-    channel wins, so a channel never gets two overlapping guides."""
+    channel wins, so a channel never gets two overlapping guides. Programmes go straight to a temporary file,
+    so memory holds only the channel list, however big the guides are."""
 
     def __init__(self, now: float | None = None):
         self.now = now or time.time()
         self.channels: dict[str, bytes] = {}
-        self.programmes: dict[str, list[bytes]] = defaultdict(list)
         self.owner: dict[str, str] = {}
+        self.covered: set[str] = set()
+        self._programmes = tempfile.TemporaryFile()  # noqa: SIM115 - spans add() calls; closed by write()
 
-    def add(self, source: str, data: bytes, ids: dict[str, list[str]] | None) -> int:
-        """Add one XMLTV document; `ids` maps its channel ids to ours (None: they're already ours)."""
+    def add(self, source: str, data: bytes, ids: dict[str, list[str]]) -> int:
+        """Add one XMLTV document; `ids` maps its channel ids to ours. Returns how many channels it covered."""
         added: set[str] = set()
         for _, el in ET.iterparse(io.BytesIO(data), events=("end",)):
             if el.tag == "channel":
@@ -135,29 +138,26 @@ class Merger:
                 if ours_list and _stop_time(el.get("stop", "")) > self.now:
                     for ours in ours_list:
                         el.set("channel", ours)
-                        self.programmes[ours].append(ET.tostring(el, encoding="utf-8"))
+                        self._programmes.write(ET.tostring(el, encoding="utf-8"))
                         added.add(ours)
                 el.clear()
+        self.covered |= added
         return len(added)
 
-    def _ours(self, source: str, theirs: str, ids: dict[str, list[str]] | None) -> list[str]:
-        out = []
-        for ours in ([theirs] if ids is None else ids.get(theirs, [])):
-            if self.owner.setdefault(ours, source) == source:
-                out.append(ours)
-        return out
+    def _ours(self, source: str, theirs: str, ids: dict[str, list[str]]) -> list[str]:
+        return [ours for ours in ids.get(theirs, []) if self.owner.setdefault(ours, source) == source]
 
     def write(self, path: Path) -> int:
-        covered = [c for c in self.channels if self.programmes.get(c)]
         with gzip.open(path, "wb") as f:
             f.write(b'<?xml version="1.0" encoding="UTF-8"?>\n<tv generator-info-name="freeplaylist">\n')
-            for c in covered:
-                f.write(self.channels[c])
-            for c in covered:
-                for p in self.programmes[c]:
-                    f.write(p)
+            for c in self.channels:
+                if c in self.covered:
+                    f.write(self.channels[c])
+            self._programmes.seek(0)
+            shutil.copyfileobj(self._programmes, f)
             f.write(b"</tv>\n")
-        return len(covered)
+        self._programmes.close()
+        return len(self.covered & set(self.channels))
 
 
 def merge(state_dir: Path, out: Path, grabbed: Path | None = None) -> int:
@@ -170,27 +170,19 @@ def merge(state_dir: Path, out: Path, grabbed: Path | None = None) -> int:
     if grabbed and grabbed.exists():
         night = the_plan.get("night", 0)
         (folder / f"group-{night}.xml.gz").write_bytes(grabbed.read_bytes())
-    merger = Merger()
-    for cc, ids in sorted(the_plan["iptv_epg"].items()):
-        try:
-            n = merger.add("iptv-epg.org", _download(IPTV_EPG.format(cc)), ids)
-            log.info("epg: iptv-epg.org %s: %d channels", cc, n)
-        except Exception as e:  # noqa: BLE001 - not every country has a file; others may fail for a night
-            log.info("epg: iptv-epg.org %s: %s", cc, e)
-    for url, ids in sorted(the_plan["mjh"].items()):
-        try:
-            n = merger.add("i.mjh.nz", _download(url), ids)
-            log.info("epg: %s: %d channels", url, n)
-        except Exception as e:  # noqa: BLE001
-            log.warning("epg: %s: %s", url, e)
     # Grabber output already uses our ids; keeping only channels still in the plan drops ones no longer published.
     slow_ids = {s[3]: [s[3]] for s in the_plan["slow"]}
-    for group_file in sorted(folder.glob("group-*.xml.gz")):
+    sources = [("iptv-epg.org", lambda cc=cc: _download(IPTV_EPG.format(cc)), ids, f"iptv-epg.org {cc}")
+               for cc, ids in sorted(the_plan["iptv_epg"].items())]
+    sources += [("i.mjh.nz", lambda url=url: _download(url), ids, url) for url, ids in sorted(the_plan["mjh"].items())]
+    sources += [("iptv-org/epg", lambda f=f: gzip.decompress(f.read_bytes()), slow_ids, f.name)
+                for f in sorted(folder.glob("group-*.xml.gz"))]
+    merger = Merger()
+    for source, load, ids, label in sources:
         try:
-            n = merger.add("iptv-org/epg", gzip.decompress(group_file.read_bytes()), slow_ids)
-            log.info("epg: %s: %d channels", group_file.name, n)
-        except Exception as e:  # noqa: BLE001
-            log.warning("epg: %s: %s", group_file.name, e)
+            log.info("epg: %s: %d channels", label, merger.add(source, load(), ids))
+        except Exception as e:  # noqa: BLE001 - not every country has a file; any one source may fail for a night
+            log.info("epg: %s: %s", label, e)
     out.parent.mkdir(parents=True, exist_ok=True)
     count = merger.write(out)
     log.info("epg: guide written for %d channels", count)
