@@ -68,7 +68,7 @@ included only if the automatic rules in [`config/live_hosts.yaml`](config/live_h
 
 **Free streaming services (FAST).** Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV and
 Xumo Play are *Free Ad-Supported Streaming Television* services, known in the industry as FAST. They license
-their channels from the rights holders and pay for them with adverts, so they stream them to anyone, free and
+their channels from the rights holders and pay for them with adverts, so they stream them to anyone for free, usually
 without an account. That's why their channels count as legally free here. Their channels are grouped under the
 service's name (e.g. `US | Pluto TV`). Most of them are only available in certain countries.
 
