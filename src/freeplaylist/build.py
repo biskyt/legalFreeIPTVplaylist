@@ -145,6 +145,7 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     if opts.phase == "harvest":
         return Collected(entries, decisions, {}, harvested, missing)
     entries, dropped = _dedupe(entries)
+    _identify(entries)
     if opts.vod and opts.enrich and opts.phase in (None, "publish"):
         wd_path = opts.state_dir / "wikidata.json"
         wd_state = config.load_state(wd_path)
@@ -170,6 +171,13 @@ def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], 
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
         log.info("website check: %d sites with unverified streams", len(sites))
     return iptv_org.build(api, rules, site_links)
+
+
+def _identify(entries: list[Entry]) -> None:
+    """Entries on hosts that refuse unidentified players (net.IDENTIFY_TO) carry our user agent for players."""
+    for e in entries:
+        if not e.user_agent and net.host_of(e.url) in net.IDENTIFY_TO:
+            e.user_agent = net.USER_AGENT
 
 
 def _title_key(e: Entry) -> tuple | None:

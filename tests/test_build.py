@@ -100,3 +100,14 @@ def test_dedupe_prefers_earlier_source(entry):
     again = entry(id="ia.BBB", kind="movie", url="https://archive.org/download/BBB/bbb.mp4")
     kept, dropped = build._dedupe([curated, again])
     assert kept == [curated] and dropped[0].item == "ia.BBB"
+
+
+def test_wikimedia_files_tell_players_to_identify(entry):
+    from freeplaylist import net
+
+    film = entry(id="commons.x", kind="movie", url="https://upload.wikimedia.org/wikipedia/commons/a/ab/X.webm")
+    other = entry(id="ia.y", kind="movie", url="https://archive.org/download/y/y.mp4")
+    build._identify([film, other])
+    assert film.user_agent == net.USER_AGENT and other.user_agent is None
+    line = m3u.render_entry(film)
+    assert f'http-user-agent="{net.USER_AGENT}"' in line and f"#EXTVLCOPT:http-user-agent={net.USER_AGENT}" in line

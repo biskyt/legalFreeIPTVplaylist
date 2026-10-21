@@ -23,6 +23,9 @@ USER_AGENT = "freeplaylist/0.1 (+https://github.com/biskyt/legalFreeIPTVplaylist
 # Some streaming servers refuse unknown clients; probes look like an ordinary player.
 PLAYER_AGENT = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 THROTTLED = {429, 503}
+# Hosts that refuse unidentified clients (Wikimedia answers 429 to generic player user agents): entries served
+# from them tell players to identify themselves with our user agent (the playlist's http-user-agent).
+IDENTIFY_TO = {"upload.wikimedia.org"}
 # Hosts that ask for fewer connections than the default. Wikimedia's robot policy: at most 2 at a time.
 PER_HOST = {"upload.wikimedia.org": 2, "commons.wikimedia.org": 2, "query.wikidata.org": 2}
 
