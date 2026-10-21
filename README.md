@@ -183,7 +183,8 @@ other people's servers, so each night does a share of it ([`config/schedule.yaml
   rotate the same way.
 - **Movies and series:** each source is harvested once a week, on its own day (curated films Monday, Archive
   series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday, Open Beelden Friday). On that day, its
-  new items and a quarter of the rest are checked.
+  new items and a quarter of the rest are checked. Open Beelden's feed is slow, so its first harvest carries on
+  every night until the whole archive has been read once; after that, it's read again once a month.
 - **TV guide:** the ready-made guides are fetched every night; the grabber's channels (only those no ready-made
   guide covers) rotate, one group a night, 8 days ahead each time.
 

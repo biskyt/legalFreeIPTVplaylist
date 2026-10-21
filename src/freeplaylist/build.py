@@ -83,8 +83,9 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     harvested: set[str] = set()
     missing: set[str] = set()
 
-    def section(key: str, harvest) -> None:
-        """One source's entries: harvested if due (or forced, or never harvested), otherwise its snapshot.
+    def section(key: str, harvest, filling: bool = False) -> None:
+        """One source's entries: harvested if due (or forced, or never harvested, or `filling`: a first harvest
+        spread over several nights), otherwise its snapshot.
         A failed harvest falls back to the snapshot, so one broken source doesn't stop the build."""
         if opts.phase == "harvest" and key != opts.source:
             return
@@ -99,7 +100,7 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
                 return
             if snap[2] == day.isoformat():
                 harvested.add(key)
-        elif opts.all or opts.only is not None or snap is None or tonight.due(key):
+        elif opts.all or opts.only is not None or snap is None or filling or tonight.due(key):
             log.info("%s: harvesting", key)
             try:
                 found = harvest()
@@ -141,7 +142,8 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
             ob_path = opts.state_dir / "open_beelden.json"
             ob_state = config.load_state(ob_path)
             try:
-                section("open-beelden", lambda: open_beelden.build(load("open_beelden"), ob_state))
+                section("open-beelden", lambda: open_beelden.build(load("open_beelden"), ob_state),
+                        filling=open_beelden.filling(ob_state))
             finally:
                 config.save_state(ob_path, ob_state)
     elif opts.live:

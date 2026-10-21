@@ -97,8 +97,15 @@ jobs:
           git clone --depth 1 https://github.com/iptv-org/epg "$RUNNER_TEMP/epg"
           cd "$RUNNER_TEMP/epg"
           npm ci --no-audit --no-fund
-          npm run grab --- --channels="$GITHUB_WORKSPACE/state/epg/channels.xml" --days=8 --maxConnections=5 \
-            --delay=250 --output="$RUNNER_TEMP/grabbed.xml" --gzip="$RUNNER_TEMP/grabbed.xml.gz"
+          # The grabber logs a line per request (and per failure); keep every 100th and a count of failures.
+          set -o pipefail
+          NODE_OPTIONS=--max-old-space-size=6144 npm run grab --- \
+            --channels="$GITHUB_WORKSPACE/state/epg/channels.xml" --days=8 --maxConnections=5 --delay=250 \
+            --output="$RUNNER_TEMP/grabbed.xml" --gzip="$RUNNER_TEMP/grabbed.xml.gz" 2>&1 |
+            awk '/^\[info\] +\[[0-9]+\/[0-9]+\]/ { if (++n % 100 == 0) { print; fflush() } next }
+                 /^\[info\] +ERR:/ { e++; next }
+                 { print; fflush() }
+                 END { print n " requests, " e + 0 " failed" }'
       - name: Merge TV guide
         continue-on-error: true
         timeout-minutes: 30

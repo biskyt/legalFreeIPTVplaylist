@@ -4,4 +4,4 @@
 min_minutes: 3
 max: 400
 group: "Documentaries: Dutch archive"
-max_pages: 30   # requests per run; the first full harvest (~111 requests) is spread over several runs
+max_pages: 60   # requests per run (about 25 minutes); the first walk of the archive takes a few nightly runs
