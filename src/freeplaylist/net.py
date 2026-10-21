@@ -23,6 +23,8 @@ USER_AGENT = "freeplaylist/0.1 (+https://github.com/biskyt/legalFreeIPTVplaylist
 # Some streaming servers refuse unknown clients; probes look like an ordinary player.
 PLAYER_AGENT = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 THROTTLED = {429, 503}
+# Hosts that ask for fewer connections than the default. Wikimedia's robot policy: at most 2 at a time.
+PER_HOST = {"upload.wikimedia.org": 2, "commons.wikimedia.org": 2, "query.wikidata.org": 2}
 
 
 def host_of(url: str) -> str:
@@ -32,12 +34,14 @@ def host_of(url: str) -> str:
 class HostLimiter:
     """Per-host concurrency, spacing and back-off, shared by every thread."""
 
-    def __init__(self, per_host: int = 4, min_interval: float = 0.25, max_backoff: float = 120):
+    def __init__(self, per_host: int = 4, min_interval: float = 0.25, max_backoff: float = 120,
+                 limits: dict[str, int] | None = None):
         self.per_host = per_host
+        self.limits = PER_HOST if limits is None else limits
         self.min_interval = min_interval
         self.max_backoff = max_backoff
         self._lock = threading.Lock()
-        self._slots: dict[str, threading.Semaphore] = defaultdict(lambda: threading.Semaphore(self.per_host))
+        self._slots: dict[str, threading.Semaphore] = {}
         self._next: dict[str, float] = defaultdict(float)  # earliest time the next request to a host may start
         self._backoff: dict[str, float] = defaultdict(float)  # current back-off per host, in seconds
 
@@ -45,7 +49,9 @@ class HostLimiter:
     def slot(self, url: str):
         host = host_of(url)
         with self._lock:
-            sem = self._slots[host]
+            sem = self._slots.get(host)
+            if sem is None:
+                sem = self._slots[host] = threading.Semaphore(self.limits.get(host, self.per_host))
         with sem:
             with self._lock:
                 start = max(time.monotonic(), self._next[host])
@@ -140,11 +146,16 @@ def _read_start(resp, max_bytes: int, deadline: float) -> bytes:
 
 
 def probe(url: str, *, user_agent: str | None = None, referrer: str | None = None, timeout: float = 8,
-          max_bytes: int = 65536, retries: int = 1) -> Probe:
+          max_bytes: int = 65536, retries: int = 1, byte_range: bool = False) -> Probe:
     """Fetch the start of a URL the way a player would, following redirects. A throttled answer (429/503) is
-    retried after the host's back-off, so a busy server isn't mistaken for a dead stream."""
-    # No Range header: some live servers reject it. Reading stops after max_bytes and the connection is closed.
+    retried after the host's back-off, so a busy server isn't mistaken for a dead stream.
+
+    With byte_range, only the first max_bytes are requested (a Range header). That suits files: some media
+    servers limit bytes per minute, and a check needs only the start. Live servers get no Range header, as some
+    reject it; reading stops after max_bytes and the connection is closed."""
     headers = {"User-Agent": user_agent or PLAYER_AGENT}
+    if byte_range:
+        headers["Range"] = f"bytes=0-{max_bytes - 1}"
     if referrer:
         headers["Referer"] = referrer
     for attempt in range(retries + 1):

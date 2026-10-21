@@ -46,3 +46,28 @@ def test_probe_read_stops_at_the_deadline():
     start = time.monotonic()
     body = net._read_start(Trickle(), 65536, time.monotonic() + 0.1)
     assert 0 < len(body) < 65536 and time.monotonic() - start < 1
+
+
+def test_hosts_can_ask_for_fewer_connections():
+    import threading
+    import time
+
+    limiter = net.HostLimiter(per_host=4, min_interval=0, limits={"slow.example": 1})
+    active, peak = [0], [0]
+    lock = threading.Lock()
+
+    def use():
+        with limiter.slot("https://slow.example/x"):
+            with lock:
+                active[0] += 1
+                peak[0] = max(peak[0], active[0])
+            time.sleep(0.02)
+            with lock:
+                active[0] -= 1
+
+    threads = [threading.Thread(target=use) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert peak[0] == 1

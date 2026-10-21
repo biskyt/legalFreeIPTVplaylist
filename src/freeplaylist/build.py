@@ -227,7 +227,7 @@ def check_health(entries: list[Entry], opts: Options, tonight: schedule.Tonight,
     # In a phased build each kind is checked in its own phase; the others use the last checks.
     live, d1 = healthcheck.run(live, state, healthcheck.Checker(), due=live_due,
                                check=opts.phase in (None, "check-live"))
-    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), due=vod_due, keep_on_error=True,
+    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20, files=True), due=vod_due, keep_on_error=True,
                               check=opts.phase in (None, "check-vod"))
     urls = {c["url"] for e in entries for c in healthcheck.candidates(e)}
     config.save_state(path, healthcheck.prune(state, urls))

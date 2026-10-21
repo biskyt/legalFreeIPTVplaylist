@@ -57,10 +57,14 @@ def _first_variant(body: bytes) -> str | None:
 class Checker:
     """Checks streams; per-host limits and back-off come from the shared limiter in net.probe."""
 
-    def __init__(self, *, workers: int = 48, timeout: float = 8, probe=net.probe):
+    def __init__(self, *, workers: int = 48, timeout: float = 8, files: bool = False, probe=net.probe):
         self.workers = workers
         self.timeout = timeout
         self._probe = probe
+        # Movie and episode files: ask for just their first kilobyte, identifying the project (Wikimedia's file
+        # servers allow each client only about 600 KB a minute, and ask bots to say who they are).
+        self._file_opts = {"byte_range": True, "max_bytes": 1024} if files else {}
+        self._default_ua = net.USER_AGENT if files else None
 
     def check(self, url: str, ua: str | None = None, ref: str | None = None, labels=()) -> Result:
         try:
@@ -69,7 +73,8 @@ class Checker:
             return Result("dead", f"bad URL: {e}")
 
     def _check(self, url: str, ua: str | None, ref: str | None, labels) -> Result:
-        p = self._probe(url, user_agent=ua, referrer=ref, timeout=self.timeout)
+        p = self._probe(url, user_agent=ua or self._default_ua, referrer=ref, timeout=self.timeout,
+                        **self._file_opts)
         if p.status in (200, 206):
             path = urllib.parse.urlparse(url).path.lower()
             hls = path.endswith((".m3u8", ".m3u")) or _is_playlist(p.body)

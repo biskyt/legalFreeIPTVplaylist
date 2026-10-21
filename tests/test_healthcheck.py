@@ -121,3 +121,14 @@ def test_long_check_logs_its_progress(entry, caplog):
     kept, _ = healthcheck.run(es, {}, Slow(), progress_every=0.02)
     assert len(kept) == 4
     assert "checking 4 entries on 2 hosts" in caplog.text and "of 4 checked; most left: h" in caplog.text
+
+
+def test_file_checks_ask_for_only_the_start():
+    seen = []
+
+    def probe(url, **kw):
+        seen.append(kw)
+        return net.Probe(206, url, b"\x1aE\xdf\xa3")
+
+    assert healthcheck.Checker(files=True, probe=probe).check("https://upload.example/film.webm").status == "ok"
+    assert seen[0]["byte_range"] and seen[0]["max_bytes"] == 1024 and seen[0]["user_agent"] == net.USER_AGENT
