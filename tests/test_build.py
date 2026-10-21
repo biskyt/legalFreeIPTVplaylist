@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from freeplaylist import build, m3u
+from freeplaylist import build, healthcheck, m3u
 from freeplaylist.sources import internet_archive as ia
 
 FIXTURES = Path(__file__).parent / "fixtures" / "iptv_org"
@@ -63,6 +63,34 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     _, english = m3u.parse((out / "languages" / "eng.m3u").read_text())
     assert "DW.de@SD" in {e["tvg-id"] for e in english}
     assert 'tvg-language="English"' in (out / "live.m3u").read_text()
+
+
+def test_phased_build_matches_a_single_build(tmp_path, monkeypatch):
+    fake_archive(monkeypatch)
+    checked = []
+
+    def check(self, url, *a, **kw):
+        checked.append(url)
+        return healthcheck.Result("ok")
+
+    monkeypatch.setattr(healthcheck.Checker, "check", check)
+
+    def run(name, **kw):
+        return build.run(build.Options(out=tmp_path / name, state_dir=tmp_path / f"state-{name}", api_dir=FIXTURES,
+                                       website_check=False, extra_vod=False, enrich=False, enforce_minimums=False,
+                                       **kw))
+
+    whole = run("whole")
+    one_go = len(checked)
+    for source in build.SOURCES:
+        run("parts", phase="harvest", source=source)
+    assert not checked[one_go:]  # harvesting checks nothing
+    run("parts", phase="check-live")
+    run("parts", phase="check-vod")
+    assert len(checked) == 2 * one_go
+    parts = run("parts", phase="publish")
+    assert len(checked) == 2 * one_go  # publishing uses the checks already made
+    assert {n: f.body for n, f in parts.feeds.items()} == {n: f.body for n, f in whole.feeds.items()}
 
 
 def test_dedupe_prefers_earlier_source(entry):

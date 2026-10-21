@@ -29,6 +29,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    env:
+      BUILD: --out site --state state ${{ inputs.full && '--all' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -54,17 +56,41 @@ jobs:
             echo "couldn't check for saved state (exit $found)"; exit 1
           fi
 
-      # Fails (and leaves the previously deployed site live) if any feed is broken or too small.
-      # Only tonight's share of sources and stream checks runs (config/schedule.yaml); the rest come from state/.
-      - run: python -m freeplaylist build --out site --state state ${{ inputs.full && '--all' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
+      # The build runs in parts, one step each, so the Actions page shows how far it has got (a step's log only
+      # appears once it finishes). Each harvest step refreshes one source's snapshot if it's due tonight
+      # (config/schedule.yaml) and is quick otherwise; the check steps test tonight's share of streams; the
+      # publish step builds the site from the snapshots and fails (leaving the deployed site live) if any feed
+      # is broken or too small.
+      - name: Harvest curated films
+        run: python -m freeplaylist build $BUILD --phase harvest --source curated
+      - name: Harvest Internet Archive series
+        run: python -m freeplaylist build $BUILD --phase harvest --source internet-archive-series
+      - name: Harvest Wikimedia Commons
+        run: python -m freeplaylist build $BUILD --phase harvest --source wikimedia-commons
+      - name: Harvest Internet Archive movies
+        run: python -m freeplaylist build $BUILD --phase harvest --source internet-archive-movies
+      - name: Harvest Open Beelden
+        run: python -m freeplaylist build $BUILD --phase harvest --source open-beelden
+      - name: Harvest live channels (iptv-org and broadcaster websites)
+        run: python -m freeplaylist build $BUILD --phase harvest --source iptv-org
+      - name: Check live streams
+        run: python -m freeplaylist build $BUILD --phase check-live
+      - name: Check movies and series
+        run: python -m freeplaylist build $BUILD --phase check-vod
+      - name: Build playlists
+        run: python -m freeplaylist build $BUILD --phase publish
 
-      # TV guide (see src/freeplaylist/epg.py). The grabber scrapes tonight's group of slow channels for 8 days
-      # ahead; then `freeplaylist epg` downloads the ready-made guides and merges everything. If either fails,
-      # the previous guide (kept in state/) is published, so the playlists still deploy.
+      # TV guide (see src/freeplaylist/epg.py). First the ready-made guides are downloaded; then the grabber
+      # scrapes tonight's group of the channels none of them covered, for 8 days ahead; then everything is
+      # merged. If any step fails, the previous guide (kept in state/) is published, so the playlists still deploy.
+      - name: Download ready-made guides
+        continue-on-error: true
+        timeout-minutes: 30
+        run: python -m freeplaylist epg fast --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Grab tonight's slow guides
+      - name: Grab tonight's other guides
         continue-on-error: true
         timeout-minutes: 60
         run: |
@@ -73,11 +99,12 @@ jobs:
           npm ci --no-audit --no-fund
           npm run grab --- --channels="$GITHUB_WORKSPACE/state/epg/channels.xml" --days=8 --maxConnections=5 \
             --delay=250 --output="$RUNNER_TEMP/grabbed.xml" --gzip="$RUNNER_TEMP/grabbed.xml.gz"
-      - name: Build TV guide
+      - name: Merge TV guide
         continue-on-error: true
-        timeout-minutes: 45
+        timeout-minutes: 30
         run: |
-          python -m freeplaylist epg --state state --out "$RUNNER_TEMP/epg.xml.gz" --grabbed "$RUNNER_TEMP/grabbed.xml.gz"
+          python -m freeplaylist epg merge --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz" \
+            --grabbed "$RUNNER_TEMP/grabbed.xml.gz" --out "$RUNNER_TEMP/epg.xml.gz"
           mv "$RUNNER_TEMP/epg.xml.gz" state/epg.xml.gz
       - name: Publish TV guide
         run: |

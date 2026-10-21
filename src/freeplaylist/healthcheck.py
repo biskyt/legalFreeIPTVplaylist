@@ -101,13 +101,15 @@ def candidates(e: Entry) -> list[dict]:
 
 
 def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[Entry], bool] | None = None,
-        today: str | None = None, keep_on_error: bool = False) -> tuple[list[Entry], list[Decision]]:
+        today: str | None = None, keep_on_error: bool = False,
+        check: bool = True) -> tuple[list[Entry], list[Decision]]:
     """Entries that pass (in the same order), and a decision for every entry checked or dropped.
 
     An entry is checked when any of its streams is new, or when `due(entry)` says it's its turn (every entry by
     default). Every other entry is judged on its last check: kept if a stream last worked (or, with
     keep_on_error, last gave no definite answer), dropped if it was last found dead.
-    With keep_on_error, an entry whose checks all end without a definite answer is kept unchanged."""
+    With keep_on_error, an entry whose checks all end without a definite answer is kept unchanged.
+    With check=False nothing is fetched: every entry is judged on its last check."""
     today = today or date.today().isoformat()
     due = due or (lambda e: True)
 
@@ -117,7 +119,7 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[E
     def wanted(e: Entry) -> bool:
         # New streams, and working ones that just failed once (their grace run), are checked the very next night;
         # the rest wait for their turn.
-        return any(c["url"] not in state or in_grace(state[c["url"]]) for c in candidates(e)) or due(e)
+        return check and (any(c["url"] not in state or in_grace(state[c["url"]]) for c in candidates(e)) or due(e))
 
     def task(e: Entry) -> tuple[Entry | None, Decision, list[tuple[str, Result]]]:
         tried: list[tuple[dict, Result]] = []

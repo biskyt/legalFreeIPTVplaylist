@@ -51,8 +51,10 @@ know the convention list films and episodes as channels, grouped as `Movies: …
 - **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
   load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly from ready-made guides,
   [IPTV-EPG.org](https://iptv-epg.org) (one file per country) and [i.mjh.nz](https://github.com/matthuisman/i.mjh.nz)
-  (free streaming services), plus [iptv-org's grabber](https://github.com/iptv-org/epg) for the channels those
-  don't cover, which grabs one seventh of them each night, 8 days ahead. The listings belong to those sources.
+  (free streaming services; Pluto TV and Samsung TV Plus channels are matched by the service's own channel id),
+  plus [iptv-org's grabber](https://github.com/iptv-org/epg) for the channels none of those files cover, which
+  grabs one seventh of them each night, 8 days ahead. A channel a ready-made file covers is never scraped. The
+  listings belong to those sources.
 - **Movie details:** films carry `tmdb-id` and `imdb-id` when [Wikidata](https://www.wikidata.org) links the
   exact Archive item or Commons file to a film (about 70% of them), and a free poster from Wikimedia Commons
   when Wikidata has one. Episodes carry their show's ids. Players can use the ids to fetch artwork and details
@@ -182,8 +184,8 @@ other people's servers, so each night does a share of it ([`config/schedule.yaml
 - **Movies and series:** each source is harvested once a week, on its own day (curated films Monday, Archive
   series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday, Open Beelden Friday). On that day, its
   new items and a quarter of the rest are checked.
-- **TV guide:** the ready-made guides are fetched every night; the grabber's channels rotate (one group a night,
-  8 days ahead each time).
+- **TV guide:** the ready-made guides are fetched every night; the grabber's channels (only those no ready-made
+  guide covers) rotate, one group a night, 8 days ahead each time.
 
 Each source's results are kept as a snapshot, and every night's playlists are rebuilt from all snapshots, so a
 source refreshed tonight replaces exactly its own entries. If a harvest fails, the previous snapshot is used.
@@ -199,7 +201,9 @@ the `state` branch), start the workflow by hand with **only** set to one or more
 out until their stage runs.
 
 **Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC and on
-manual runs (Actions tab → Build playlists → Run workflow); merges don't start a build. It deploys to GitHub Pages. If a build comes out broken
+manual runs (Actions tab → Build playlists → Run workflow); merges don't start a build. The build runs as
+separate steps (one harvest per source, then the live and the movie checks, the playlists and the TV guide),
+the same as `python -m freeplaylist build --phase ...` locally, so the run's page shows how far it has got. It deploys to GitHub Pages. If a build comes out broken
 (an upstream API down, too few entries), the job fails and the previous playlists stay online. To enable
 it: **Settings → Pages → Source: GitHub Actions**.
 

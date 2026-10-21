@@ -67,7 +67,8 @@ def test_merge_saves_tonights_group_and_combines(tmp_path, monkeypatch):
     grabbed = tmp_path / "grabbed.xml.gz"
     grabbed.write_bytes(gzip.compress(doc("Local.fr@SD", "Tonight")))
     monkeypatch.setattr(epg, "_download", lambda url: doc("3sat.de", "Fast"))
-    assert epg.merge(tmp_path, tmp_path / "site" / "epg.xml.gz", grabbed) == 3
+    # The fast step didn't run (or failed), so merge downloads the ready-made files itself.
+    assert epg.merge(tmp_path, tmp_path / "site" / "epg.xml.gz", tmp_path / "fast.xml.gz", grabbed) == 3
     assert (folder / "group-2.xml.gz").exists()
 
 
@@ -88,3 +89,27 @@ def test_broken_source_leaves_nothing_behind(tmp_path):
     m.write(out)
     text = gzip.decompress(out.read_bytes()).decode()
     assert ">Whole<" in text and ">Partial<" not in text
+
+
+def test_service_channels_match_by_the_id_in_their_stream_url(entry):
+    entries = [entry(id="PlutoMovies.us@SD", title="Pluto Movies", url="https://jmp2.uk/plu-62ba60f059624e000781c436.m3u8"),
+               entry(id="Sam.us@SD", title="Sam", url="https://jmp2.uk/stvp-USBC4700001GR")]
+    guides = [{"channel": "PlutoMovies.us", "feed": None, "site": "tv.example", "site_id": "9", "lang": "en"}]
+    plan = epg.plan(entries, guides, schedule.Tonight({"live_groups": 1}, date(2026, 10, 19)))
+    assert plan["mjh"][epg.MJH.format("PlutoTV/all") + ".gz"] == {"62ba60f059624e000781c436": ["PlutoMovies.us@SD"]}
+    assert plan["mjh"][epg.MJH.format("SamsungTVPlus/all") + ".gz"] == {"USBC4700001GR": ["Sam.us@SD"]}
+    assert plan["slow"] == []  # never scraped: the ready-made file has it
+
+
+def test_fast_leaves_only_uncovered_channels_for_the_grabber(tmp_path, monkeypatch):
+    folder = tmp_path / "epg"
+    folder.mkdir()
+    tonight = [["s", "1", "de", "3sat.de@SD", "3sat"], ["s", "2", "fr", "Local.fr@SD", "Local"]]
+    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "mjh": {}, "slow": tonight, "tonight": tonight,
+            "night": 0}
+    (folder / "plan.json").write_text(json.dumps(plan))
+    monkeypatch.setattr(epg, "_download", lambda url: doc("3sat.de", "Fast"))
+    assert epg.fast(tmp_path, tmp_path / "fast.xml.gz") == 1
+    grab = (folder / "channels.xml").read_text()
+    assert "Local.fr@SD" in grab and "3sat.de@SD" not in grab
+    assert json.loads((tmp_path / "fast.xml.gz.channels.json").read_text()) == ["3sat.de@SD"]

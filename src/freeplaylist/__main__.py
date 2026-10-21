@@ -26,21 +26,29 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--only", help="staged run: harvest only these comma-separated sources; the rest come from "
                                   f"their snapshots ({', '.join(build.SOURCES)})")
     b.add_argument("--no-minimums", action="store_true", help="don't fail on small feeds (partial builds)")
+    b.add_argument("--phase", choices=build.PHASES, help="run one part of the build (see build.PHASES)")
+    b.add_argument("--source", choices=build.SOURCES, help="the source a --phase=harvest run harvests")
 
     c = sub.add_parser("credits", help="regenerate the README credits section from config/credits.yaml")
     c.add_argument("--check", action="store_true", help="fail if the README is out of date instead of writing")
     c.add_argument("--readme", type=Path, default=config.ROOT / "README.md")
 
-    g = sub.add_parser("epg", help="build the TV guide from the plan the last build wrote (after the grabber ran)")
+    g = sub.add_parser("epg", help="build the TV guide from the plan the last build wrote (see epg.py)")
+    g.add_argument("step", choices=("fast", "merge"), help="fast: download the ready-made guides and write the "
+                   "grabber's channels.xml; merge: add the grabbed guides and write the result")
     g.add_argument("--state", type=Path, default=Path("state"))
-    g.add_argument("--out", type=Path, default=Path("site/epg.xml.gz"))
-    g.add_argument("--grabbed", type=Path, help="tonight's iptv-org/epg grabber output (.xml.gz)")
+    g.add_argument("--fast", type=Path, default=Path("fast-epg.xml.gz"), help="the merged ready-made guides")
+    g.add_argument("--out", type=Path, default=Path("site/epg.xml.gz"), help="merge: the published guide")
+    g.add_argument("--grabbed", type=Path, help="merge: tonight's iptv-org/epg grabber output (.xml.gz)")
 
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
     if args.command == "epg":
-        count = epg.merge(args.state, args.out, args.grabbed)
+        if args.step == "fast":
+            count = epg.fast(args.state, args.fast)
+        else:
+            count = epg.merge(args.state, args.out, args.fast, args.grabbed)
         print(f"guide: {count} channels")
         return 0 if count else 1
 
@@ -56,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
         print("README updated" if changed else "README already up to date")
         return 0
 
+    if (args.phase == "harvest") != bool(args.source):
+        parser.error("--phase=harvest needs --source (and --source needs --phase=harvest)")
     only = {x.strip() for x in args.only.split(",") if x.strip()} if args.only else None
     if only and only - set(build.SOURCES):
         parser.error(f"unknown sources: {', '.join(sorted(only - set(build.SOURCES)))}")
@@ -64,12 +74,15 @@ def main(argv: list[str] | None = None) -> int:
         website_check=not args.no_website_check,
         live=not args.vod_only, vod=not args.live_only, all=args.all, only=only,
         enforce_minimums=not (args.no_minimums or args.live_only or args.vod_only),
+        phase=args.phase, source=args.source,
     )
     try:
         result = build.run(opts)
     except build.BuildError as e:
         print(f"build failed: {e}", file=sys.stderr)
         return 1
+    if not result.feeds:
+        print(f"{args.phase}{f' {args.source}' if args.source else ''}: done")
     for name, feed in result.feeds.items():
         print(f"{name}.m3u: {len(feed.entries)} entries")
     return 0

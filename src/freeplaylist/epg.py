@@ -1,16 +1,22 @@
 """The TV guide (XMLTV) for the live channels, from fast sources nightly and slow ones in rotation.
 
 * Fast: ready-made XMLTV files. iptv-epg.org publishes one per country (7 days, iptv-org channel ids) and
-  i.mjh.nz one per service and region (Pluto TV, Samsung TV Plus, Plex...). One download covers hundreds of
+  i.mjh.nz one per service and region (Pluto TV, Samsung TV Plus, Plex...). Pluto TV and Samsung TV Plus
+  channels are matched by the service's own channel id, which is in the stream URL, against i.mjh.nz's
+  all-regions file, so they get a guide even where iptv-org doesn't link one. One download covers hundreds of
   channels, so these are fetched every night.
-* Slow: the remaining channels with a guide source in iptv-org's guides.json, which iptv-org's grabber
-  (https://github.com/iptv-org/epg) scrapes channel by channel. They're split into the same 7 nightly groups
-  as the stream checks; each night the workflow grabs one group for 8 days ahead, so every channel always has
-  listings. Each group's result is kept in state/epg/.
+* Slow: channels none of those files has listings for, but which have a guide source in iptv-org's
+  guides.json, are scraped channel by channel by iptv-org's grabber (https://github.com/iptv-org/epg). They're
+  split into the same 7 nightly groups as the stream checks; each night the workflow grabs one group for 8 days
+  ahead, so every channel always has listings. Each group's result is kept in state/epg/.
 
-The build writes the plan (state/epg/plan.json and tonight's channels.xml); after the grabber has run,
-`python -m freeplaylist epg` downloads the fast files and merges everything into site/epg.xml.gz, with each
-channel's id renamed to our exact tvg-id and finished programmes dropped.
+Three steps, so each can be watched (and can fail) on its own:
+1. The build writes the plan: state/epg/plan.json (and a channels.xml of all tonight's slow channels).
+2. `python -m freeplaylist epg fast` downloads the ready-made files and merges them, then writes the grabber's
+   channels.xml with only tonight's slow channels that no file covered, so nothing is scraped that a file
+   already provides.
+3. After the grabber, `python -m freeplaylist epg merge` adds every saved grabber group and writes
+   site/epg.xml.gz. Channel ids are renamed to our exact tvg-ids and finished programmes are dropped.
 """
 
 from __future__ import annotations
@@ -24,7 +30,7 @@ import shutil
 import tempfile
 import time
 import xml.etree.ElementTree as ET
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
@@ -35,6 +41,11 @@ from .models import Entry
 log = logging.getLogger("freeplaylist")
 IPTV_EPG = "https://iptv-epg.org/files/epg-{}.xml.gz"
 MJH = "https://raw.githubusercontent.com/matthuisman/i.mjh.nz/master/{}.xml"
+# Services whose stream URLs carry the channel id i.mjh.nz uses: (pattern, i.mjh.nz file with every region).
+SERVICE_IDS = (
+    (re.compile(r"(?:jmp2\.uk/plu-|pluto\.tv/.*/channel/)([0-9a-f]{24})"), MJH.format("PlutoTV/all") + ".gz"),
+    (re.compile(r"jmp2\.uk/stvp-([A-Z0-9]+)"), MJH.format("SamsungTVPlus/all") + ".gz"),
+)
 _REFRESH = re.compile(rb"""http-equiv=["']refresh["'][^>]*url=['"]?([^'">]+)""", re.I)
 
 
@@ -45,7 +56,8 @@ def _channel_country(channel_id: str) -> str:
 
 def plan(entries: list[Entry], guides: list[dict], tonight: schedule.Tonight) -> dict:
     """Which guide covers each live channel: {"iptv_epg": {cc: {their id: [our ids]}}, "mjh": {url: {...}},
-    "slow": [[site, site_id, lang, our id, name], ...], "tonight": [...the slow ones in tonight's group]}."""
+    "slow": [[site, site_id, lang, our id, name], ...], "tonight": [...the slow ones in tonight's group]}.
+    Every channel is offered to the ready-made files; "slow" is only where to scrape it if none has it."""
     live = [e for e in entries if e.kind == "live"]
     by_channel: dict[str, list[Entry]] = defaultdict(list)
     for e in live:
@@ -62,6 +74,10 @@ def plan(entries: list[Entry], guides: list[dict], tonight: schedule.Tonight) ->
         main = [e for e in es if e.extra.get("main_feed")] or es[:1]
         out["iptv_epg"][_channel_country(channel)].setdefault(channel, []).extend(e.id for e in main)
         for e in es:
+            service = next(((url, m.group(1)) for pattern, url in SERVICE_IDS if (m := pattern.search(e.url))), None)
+            if service:
+                out["mjh"][service[0]].setdefault(service[1], []).append(e.id)
+                continue
             g = guide_for.get((channel, e.id.partition("@")[2] or None)) or guide_for.get((channel, None))
             if not g:
                 continue
@@ -89,9 +105,9 @@ def write_plan(state_dir: Path, the_plan: dict) -> None:
     folder = state_dir / "epg"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "plan.json").write_text(json.dumps(the_plan), encoding="utf-8")
+    # All of tonight's group for now, in case the next step fails; `fast` narrows it to the uncovered ones.
     (folder / "channels.xml").write_text(channels_xml(the_plan["tonight"]), encoding="utf-8")
-    log.info("epg: %d channels in ready-made guides, %d to grab (%d tonight)",
-             sum(len(v) for m in (the_plan["iptv_epg"], the_plan["mjh"]) for v in m.values()),
+    log.info("epg: %d channels with a guide site to scrape if no ready-made file has them (%d tonight)",
              len(the_plan["slow"]), len(the_plan["tonight"]))
 
 
@@ -165,8 +181,42 @@ class Merger:
         return len(self.channels)
 
 
-def merge(state_dir: Path, out: Path, grabbed: Path | None = None) -> int:
-    """Build the published guide: fast files first, then every saved grabber group. Returns channels covered.
+def _covered_file(fast_file: Path) -> Path:
+    return fast_file.with_name(fast_file.name + ".channels.json")
+
+
+def fast_sources(the_plan: dict) -> list[tuple[str, str, dict]]:
+    """(credit, url, id map) for each ready-made file, in order of preference."""
+    out = [("iptv-epg.org", IPTV_EPG.format(cc), ids) for cc, ids in sorted(the_plan["iptv_epg"].items())]
+    return out + [("i.mjh.nz", url, ids) for url, ids in sorted(the_plan["mjh"].items())]
+
+
+def fast(state_dir: Path, out: Path) -> int:
+    """Download and merge the ready-made files into `out` (and the ids of the channels covered next to it), then write
+    state/epg/channels.xml: tonight's slow channels that none of them covered. Returns channels covered."""
+    folder = state_dir / "epg"
+    the_plan = json.loads((folder / "plan.json").read_text(encoding="utf-8"))
+    merger = Merger()
+    for source, url, ids in fast_sources(the_plan):
+        try:
+            log.info("epg: %s: %d channels", url, merger.add(source, _download(url), ids))
+        except Exception as e:  # noqa: BLE001 - not every country has a file; any one file may fail for a night
+            log.info("epg: %s: %s", url, e)
+    covered = sorted(merger.owner)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    merger.write(out)
+    _covered_file(out).write_text(json.dumps(covered), encoding="utf-8")
+    grab = [s for s in the_plan["tonight"] if s[3] not in merger.owner]
+    (folder / "channels.xml").write_text(channels_xml(grab), encoding="utf-8")
+    log.info("epg: ready-made files cover %d channels (%s); %d of tonight's %d slow channels left to grab",
+             len(covered), ", ".join(f"{s} {n}" for s, n in Counter(merger.owner.values()).most_common()),
+             len(grab), len(the_plan["tonight"]))
+    return len(covered)
+
+
+def merge(state_dir: Path, out: Path, fast_file: Path, grabbed: Path | None = None) -> int:
+    """Build the published guide: the merged ready-made files (made by `fast` now if that step didn't finish),
+    then every saved grabber group. Returns channels covered.
 
     `grabbed` is tonight's grabber output, saved as tonight's group before merging.
     """
@@ -175,18 +225,20 @@ def merge(state_dir: Path, out: Path, grabbed: Path | None = None) -> int:
     if grabbed and grabbed.exists():
         night = the_plan.get("night", 0)
         (folder / f"group-{night}.xml.gz").write_bytes(grabbed.read_bytes())
+    if not fast_file.exists() or not _covered_file(fast_file).exists():
+        fast(state_dir, fast_file)
+    covered = json.loads(_covered_file(fast_file).read_text(encoding="utf-8"))
     # Grabber output already uses our ids; keeping only channels still in the plan drops ones no longer published.
     slow_ids = {s[3]: [s[3]] for s in the_plan["slow"]}
-    sources = [("iptv-epg.org", lambda cc=cc: _download(IPTV_EPG.format(cc)), ids, f"iptv-epg.org {cc}")
-               for cc, ids in sorted(the_plan["iptv_epg"].items())]
-    sources += [("i.mjh.nz", lambda url=url: _download(url), ids, url) for url, ids in sorted(the_plan["mjh"].items())]
+    sources = [("ready-made", lambda: gzip.decompress(fast_file.read_bytes()), {c: [c] for c in covered},
+                fast_file.name)]
     sources += [("iptv-org/epg", lambda f=f: gzip.decompress(f.read_bytes()), slow_ids, f.name)
                 for f in sorted(folder.glob("group-*.xml.gz"))]
     merger = Merger()
     for source, load, ids, label in sources:
         try:
             log.info("epg: %s: %d channels", label, merger.add(source, load(), ids))
-        except Exception as e:  # noqa: BLE001 - not every country has a file; any one source may fail for a night
+        except Exception as e:  # noqa: BLE001 - one bad group file shouldn't lose the rest
             log.info("epg: %s: %s", label, e)
     out.parent.mkdir(parents=True, exist_ok=True)
     count = merger.write(out)

@@ -24,6 +24,10 @@ REPO = "https://github.com/biskyt/legalFreeIPTVplaylist"
 # The source names used by --only, config/schedule.yaml and the snapshots.
 SOURCES = ("curated", "internet-archive-series", "wikimedia-commons", "internet-archive-movies", "open-beelden",
            "iptv-org")
+# A build can run in parts (one per workflow step, so progress shows step by step), sharing state/: "harvest"
+# one source into its snapshot; "check-live" / "check-vod" check tonight's streams from the snapshots; "publish"
+# builds the site from the snapshots and the last checks. Without a phase, a build does all of it at once.
+PHASES = ("harvest", "check-live", "check-vod", "publish")
 
 
 class BuildError(Exception):
@@ -46,6 +50,8 @@ class Options:
     only: set[str] | None = None  # staged run: harvest just these sources (see SOURCES); others from snapshots
     day: date | None = None  # the night being built (UTC); defaults to today
     enforce_minimums: bool = True
+    phase: str | None = None  # one part of the build (see PHASES); None for all of it
+    source: str | None = None  # the source a "harvest" phase harvests
 
 
 @dataclass
@@ -80,14 +86,19 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     def section(key: str, harvest) -> None:
         """One source's entries: harvested if due (or forced, or never harvested), otherwise its snapshot.
         A failed harvest falls back to the snapshot, so one broken source doesn't stop the build."""
+        if opts.phase == "harvest" and key != opts.source:
+            return
         snap = snapshots.load(opts.state_dir, key)
         found = None
-        if opts.only is not None and key not in opts.only:
+        if (opts.only is not None and key not in opts.only) or opts.phase not in (None, "harvest"):
             # A staged run (--only): other sources come from their snapshots, or wait for their own stage.
+            # Checking and publishing phases use the snapshots their harvest phases left.
             if snap is None:
                 missing.add(key)
-                log.info("%s: no snapshot yet; left out until its stage runs", key)
+                log.info("%s: no snapshot yet; left out until it's harvested", key)
                 return
+            if snap[2] == day.isoformat():
+                harvested.add(key)
         elif opts.all or opts.only is not None or snap is None or tonight.due(key):
             try:
                 found = harvest()
@@ -138,8 +149,10 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
         entries.extend(e for e in found[0] if e.kind == "live")
     if opts.live:
         section("iptv-org", lambda: _live(opts, load, tonight))
+    if opts.phase == "harvest":
+        return Collected(entries, decisions, {}, harvested, missing)
     entries, dropped = _dedupe(entries)
-    if opts.vod and opts.enrich:
+    if opts.vod and opts.enrich and opts.phase in (None, "publish"):
         wd_path = opts.state_dir / "wikidata.json"
         wd_state = config.load_state(wd_path)
         matched = enrich.apply(entries, enrich.load(wd_state))
@@ -211,8 +224,11 @@ def check_health(entries: list[Entry], opts: Options, tonight: schedule.Tonight,
 
     live = [e for e in entries if e.kind == "live"]
     vod = [e for e in entries if e.kind != "live"]
-    live, d1 = healthcheck.run(live, state, healthcheck.Checker(), due=live_due)
-    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), due=vod_due, keep_on_error=True)
+    # In a phased build each kind is checked in its own phase; the others use the last checks.
+    live, d1 = healthcheck.run(live, state, healthcheck.Checker(), due=live_due,
+                               check=opts.phase in (None, "check-live"))
+    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), due=vod_due, keep_on_error=True,
+                              check=opts.phase in (None, "check-vod"))
     urls = {c["url"] for e in entries for c in healthcheck.candidates(e)}
     config.save_state(path, healthcheck.prune(state, urls))
     log.info("health: kept %d live, %d vod (live host group %d of %d checked tonight)", len(live), len(vod),
@@ -341,12 +357,16 @@ def run(opts: Options) -> Result:
     tonight = schedule.Tonight(config.load("schedule", opts.config_dir), opts.day or datetime.now(UTC).date())
     got = collect(opts, tonight)
     entries, decisions, sources = got.entries, got.decisions, got.sources
+    if opts.phase == "harvest":
+        return Result({}, decisions)
     absent = credits.missing(entries, sources)
     if absent:
         raise BuildError(f"no credit record in credits.yaml for: {', '.join(sorted(absent))}")
     if opts.health:
         entries, d = check_health(entries, opts, tonight, got.harvested)
         decisions += d
+    if opts.phase in ("check-live", "check-vod"):
+        return Result({}, decisions)
     feed_cfg = config.load("feeds", opts.config_dir)
     built, d = make_feeds(entries, feed_cfg)
     decisions += d
