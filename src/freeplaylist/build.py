@@ -303,7 +303,7 @@ def catalog(built: dict[str, feeds.Feed]) -> dict:
     }
 
 
-def index_html(built: dict[str, feeds.Feed]) -> str:
+def index_html(built: dict[str, feeds.Feed], sources: dict | None = None) -> str:
     def rows(names):
         return "".join(
             f'<tr><td><a href="{n}.m3u">{n}.m3u</a></td><td>{html.escape(built[n].title)}</td>'
@@ -314,6 +314,10 @@ def index_html(built: dict[str, feeds.Feed]) -> str:
     main = [n for n in built if not n.startswith("languages/")]
     by_lang = sorted((n for n in built if n.startswith("languages/")), key=lambda n: built[n].title)
     lang_rows = rows(by_lang)
+    guide_sources = "".join(
+        f'<li><a href="{html.escape(s["url"])}">{html.escape(s["name"])}</a>: '
+        f'{html.escape(" ".join(s["provides"].split()))}. <small>{html.escape(s["license"])}.</small></li>'
+        for s in (sources or {}).values() if s.get("guide"))
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Legal free IPTV playlist</title>
@@ -326,10 +330,16 @@ licensed movies and series, as M3U playlists.
 Rebuilt daily. This site only links to streams; it hosts no video.</p>
 <table><thead><tr><th>Playlist</th><th>Contents</th><th>Entries</th></tr></thead><tbody>{rows(main)}</tbody></table>
 <p>Add <code>{PAGES}/playlist.m3u</code> (everything) to your IPTV app, or the separate feeds if your app
-takes one playlist per type. The TV guide, <a href="epg.xml.gz">epg.xml.gz</a> (XMLTV), is named in the header of
-every playlist with live channels, so most apps load it automatically; otherwise add
-<code>{PAGES}/epg.xml.gz</code> as the EPG source. Movies and series use an open
+takes one playlist per type. Movies and series use an open
 <a href="{REPO}/blob/main/FORMAT.md">M3U convention</a>; apps that don't know it show them as groups.</p>
+<h2>TV guide</h2>
+<p><a href="epg.xml.gz">epg.xml.gz</a>: programme listings (XMLTV, gzipped) for the live channels, about a week
+ahead, rebuilt every night. It's named in the header of every playlist with live channels
+(<code>url-tvg</code>), so most apps load it automatically; otherwise add <code>{PAGES}/epg.xml.gz</code> as
+the EPG source. Its channel ids are the playlists' <code>tvg-id</code>s. Not every channel has listings.</p>
+<p>Listings come from these sources, merged in this order (a channel takes its listings from the first that
+has them; the listings belong to the broadcasters and services):</p>
+<ul>{guide_sources}</ul>
 <h2>By language</h2>
 <p>Everything in one language: live channels, then movies and series. Every entry is also tagged with
 <code>tvg-language</code> and <code>tvg-country</code>, so players can filter the main playlists too. Silent films
@@ -354,7 +364,7 @@ def write_site(out: Path, built: dict[str, feeds.Feed], decisions: list[Decision
                                      encoding="utf-8")
     everything = [e for n in ("live", "movies", "series") for e in built[n].entries]
     (out / "credits.html").write_text(credits.broadcasters_html(everything, sources), encoding="utf-8")
-    (out / "index.html").write_text(index_html(built), encoding="utf-8")
+    (out / "index.html").write_text(index_html(built, sources), encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
 
 

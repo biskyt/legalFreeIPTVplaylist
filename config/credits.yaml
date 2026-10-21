@@ -98,6 +98,7 @@ sources:
     note: Each item's maker and licence are listed in catalog.json and on its Open Beelden page.
 
   iptv-epg-org:
+    guide: true   # listed in the TV guide section of the site
     name: IPTV-EPG.org
     url: https://iptv-epg.org/
     provides: TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list
@@ -105,12 +106,15 @@ sources:
     note: Downloaded once a night, per country.
 
   i-mjh-nz:
+    guide: true
     name: i.mjh.nz (Matt Huisman)
     url: https://github.com/matthuisman/i.mjh.nz
     provides: TV guide listings (XMLTV) for Pluto TV, Samsung TV Plus, Plex and other free streaming services
+      (Pluto TV and Samsung TV Plus channels matched by the service's own channel id)
     license: Published openly on GitHub; listings belong to the services. Ask us and we'll remove them
 
   iptv-org-epg:
+    guide: true
     name: iptv-org/epg
     url: https://github.com/iptv-org/epg
     provides: The grabber that collects listings for the remaining channels from the guide sites it supports
