@@ -43,8 +43,9 @@ def test_entries(built):
     assert set(by_id) == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English", "Euronews.fr@Polish",
                           "Telesur.ve@SD", "Xumo1.us@SD"}
     dw = by_id["DW.de@SD"]
-    assert (dw.title, dw.group, dw.logo, dw.source) == ("DW", "Live: News", "https://i.imgur.com/dw.png", "iptv-org")
-    assert by_id["Pluto1.us@SD"].group == "FAST: Pluto TV"
+    assert (dw.title, dw.group, dw.logo, dw.source) == ("DW", "DE | News", "https://i.imgur.com/dw.png", "iptv-org")
+    assert by_id["Pluto1.us@SD"].group == "US | Pluto TV"
+    assert by_id["Example.uk@SD"].group == "UK | News"
     assert by_id["Pluto1.us@SD"].source == "pluto-tv"
     assert by_id["AlJazeera.qa@English"].title == "Al Jazeera English"  # non-main feed named
 

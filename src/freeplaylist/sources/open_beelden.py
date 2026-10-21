@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
@@ -65,8 +66,12 @@ def parse_record(rec: ET.Element) -> tuple[str, dict | None]:
     }
 
 
-def harvest(state: dict, fetch=net.get_bytes) -> dict:
-    """Bring state["records"] up to date (everything on the first run, then only changes)."""
+def harvest(state: dict, fetch=net.get_bytes, pause: float = 1.0) -> dict:
+    """Bring state["records"] up to date: everything until one full harvest has finished, then only changes.
+
+    The feed is slow and sometimes stops answering, so a failure keeps the records received so far, and the
+    next run tries again; `last` only moves on once a harvest completes.
+    """
     records = state.setdefault("records", {})
     params = {"verb": "ListRecords", "metadataPrefix": "oai_oi"}
     if state.get("last"):
@@ -74,28 +79,34 @@ def harvest(state: dict, fetch=net.get_bytes) -> dict:
     started = datetime.now(UTC).strftime("%Y-%m-%d")
     url = f"{OAI}?{urllib.parse.urlencode(params)}"
     pages = 0
-    while url:
-        pages += 1
-        if pages % 20 == 0:
-            log.info("open beelden: %d pages, %d records", pages, len(records))
-        root = ET.fromstring(fetch(url, timeout=120))
-        if root.find("o:error", NS) is not None:  # noRecordsMatch: nothing changed
-            break
-        for rec in root.iterfind(".//o:record", NS):
-            ident, fields = parse_record(rec)
-            if fields is None:
-                records.pop(ident, None)
-            else:
-                records[ident] = fields
-        token = root.findtext(".//o:resumptionToken", "", NS).strip()
-        # The server stalls on a percent-encoded "!", which its tokens are full of, so those stay as they are.
-        url = f"{OAI}?verb=ListRecords&resumptionToken={urllib.parse.quote(token, safe='!')}" if token else ""
+    try:
+        while url:
+            if pages:
+                time.sleep(pause)
+            pages += 1
+            if pages % 20 == 0:
+                log.info("open beelden: %d pages, %d records", pages, len(records))
+            root = ET.fromstring(fetch(url, timeout=60, retries=2))
+            if root.find("o:error", NS) is not None:  # noRecordsMatch: nothing changed
+                break
+            for rec in root.iterfind(".//o:record", NS):
+                ident, fields = parse_record(rec)
+                if fields is None:
+                    records.pop(ident, None)
+                else:
+                    records[ident] = fields
+            token = root.findtext(".//o:resumptionToken", "", NS).strip()
+            # The server stalls on a percent-encoded "!", which its tokens are full of, so those stay as they are.
+            url = f"{OAI}?verb=ListRecords&resumptionToken={urllib.parse.quote(token, safe='!')}" if token else ""
+    except Exception as e:  # noqa: BLE001 - use what we have; the next run continues
+        log.warning("open beelden: harvest stopped after %d pages (%s); using %d records", pages, e, len(records))
+        return state
     state["last"] = started
     return state
 
 
-def build(cfg: dict, state: dict, fetch=net.get_bytes) -> tuple[list[Entry], list[Decision]]:
-    harvest(state, fetch)
+def build(cfg: dict, state: dict, fetch=net.get_bytes, pause: float = 1.0) -> tuple[list[Entry], list[Decision]]:
+    harvest(state, fetch, pause)
     decisions: list[Decision] = []
     picked: list[tuple[str, dict]] = []
     for ident, r in state["records"].items():

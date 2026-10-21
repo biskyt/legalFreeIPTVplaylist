@@ -146,7 +146,7 @@ def check_health(entries: list[Entry], opts: Options) -> tuple[list[Entry], list
     live = [e for e in entries if e.kind == "live"]
     vod = [e for e in entries if e.kind != "live"]
     live, d1 = healthcheck.run(live, state, checker)
-    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(per_host=4, timeout=20), sample=opts.vod_sample,
+    vod, d2 = healthcheck.run(vod, state, healthcheck.Checker(timeout=20), sample=opts.vod_sample,
                               rng=random.Random(), keep_on_error=True)
     urls = {c["url"] for e in entries for c in (e.extra.get("candidates") or [{"url": e.url}])}
     config.save_state(path, healthcheck.prune(state, urls))
@@ -236,7 +236,8 @@ def index_html(built: dict[str, feeds.Feed]) -> str:
 table{{border-collapse:collapse}}td,th{{border-bottom:1px solid #ccc;padding:.3rem .8rem;text-align:left}}</style>
 </head><body>
 <h1>Legal free IPTV playlist</h1>
-<p>Legally free live TV, FAST channels, public-domain and openly licensed movies and series, as M3U playlists.
+<p>Legally free live TV (including free streaming services such as Pluto TV), public-domain and openly
+licensed movies and series, as M3U playlists.
 Rebuilt daily. This site only links to streams; it hosts no video.</p>
 <table><thead><tr><th>Playlist</th><th>Contents</th><th>Entries</th></tr></thead><tbody>{rows(main)}</tbody></table>
 <p>Add <code>{PAGES}/playlist.m3u</code> (everything) to your IPTV app, or the separate feeds if your app

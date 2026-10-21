@@ -11,7 +11,7 @@ Every addition must be **free to watch and free to link to**. Please check each 
 
 1. **Who owns it?** Name the rights holder.
 2. **Why is it free?** One of these:
-   - the owner streams it for free themselves (a broadcaster's own site, or a FAST service);
+   - the owner streams it for free themselves (a broadcaster's own site, or a free streaming service such as Pluto TV);
    - it's in the public domain in the US (give the reason, e.g. "published 1925", "copyright not renewed",
      or "US government work");
    - it's under an open licence that allows redistribution unchanged (CC BY or CC BY-SA). NC and ND licences

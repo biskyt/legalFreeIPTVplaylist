@@ -74,8 +74,9 @@ def find_hosts(sites: set[str], state: dict, *, ttl_days: int = 7, max_sites: in
         jitter = (zlib.crc32(site.encode()) % ttl_days) * 86400  # spread refreshes over the week
         return now - rec.get("t", 0) > ttl_days * 86400 + jitter
 
-    # New sites first, then the oldest results.
+    # New sites first, then the oldest results; spread over hosts so no one server gets a run of requests.
     todo = sorted((s for s in sites if stale(s)), key=lambda s: state.get(s, {}).get("t", 0))[:max_sites]
+    todo = net.round_robin(todo, key=net.host_of)
     with ThreadPoolExecutor(workers) as pool:
         for site, (hosts, ok) in zip(todo, pool.map(lambda s: site_hosts(s, fetch), todo), strict=True):
             state[site] = {"t": now, "ok": ok, "hosts": sorted(hosts)}

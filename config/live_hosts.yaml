@@ -2,7 +2,8 @@
 # See README "How live channels are vetted". Matching is on the stream URL's host name (and path where noted).
 # Every platform named here needs a matching entry in credits.yaml (a test checks this).
 
-# Free, ad-supported (FAST) services. Streams on these get their own "FAST: <name>" group.
+# Free, ad-supported streaming services (known in the industry as FAST). Their channels are grouped under the
+# service's name, e.g. "US | Pluto TV".
 # `host` matches the host name or any parent domain; `path_prefix` / `host_prefix` (optional) must also match.
 platforms:
   - name: Pluto TV

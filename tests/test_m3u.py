@@ -14,7 +14,7 @@ def naive_last_comma(line: str) -> str:
 def test_live_entry_has_no_vod_attributes(entry):
     text = m3u.render_entry(entry(id="DW.de@SD", title="DW English"))
     first, url = text.rstrip("\n").split("\n")
-    assert first == '#EXTINF:-1 tvg-id="DW.de@SD" tvg-name="DW English" group-title="Live: News",DW English'
+    assert first == '#EXTINF:-1 tvg-id="DW.de@SD" tvg-name="DW English" group-title="DE | News",DW English'
     assert url == "https://example.org/a.m3u8"
 
 

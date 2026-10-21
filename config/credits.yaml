@@ -37,7 +37,7 @@ sources:
   pluto-tv:
     name: Pluto TV
     url: https://pluto.tv/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners
     note: >-
       Linked through jmp2.uk, a third-party redirector used by iptv-org, not an official Pluto TV service.
@@ -46,39 +46,39 @@ sources:
   samsung-tv-plus:
     name: Samsung TV Plus
     url: https://www.samsungtvplus.com/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners
     note: Some streams are linked through jmp2.uk, a third-party redirector. Availability varies by country.
 
   plex:
     name: Plex
     url: https://www.plex.tv/live-tv/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from Plex; content and trademarks belong to Plex and its partners
 
   roku-channel:
     name: The Roku Channel
     url: https://therokuchannel.roku.com/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners
 
   tubi:
     name: Tubi
     url: https://tubitv.com/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from Tubi; content and trademarks belong to Tubi and its partners
 
   rakuten-tv:
     name: Rakuten TV
     url: https://www.rakuten.tv/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners
     note: Availability varies by country.
 
   xumo-play:
     name: Xumo Play
     url: https://play.xumo.com/
-    provides: Free, ad-supported (FAST) channels
+    provides: Free, ad-supported streaming channels
     license: Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners
     note: Availability varies by country.
 

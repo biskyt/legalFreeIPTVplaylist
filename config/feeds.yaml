@@ -7,7 +7,7 @@
 feeds:
   live:
     kind: live
-    title: Live TV and FAST channels
+    title: Live TV channels
     min_entries: 300
   movies:
     kind: movie

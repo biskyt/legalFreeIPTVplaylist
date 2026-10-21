@@ -28,7 +28,7 @@ def test_harvest_and_build():
         return pages["second" if "resumptionToken" in url else "first"]
 
     state = {}
-    entries, decisions = ob.build({"min_minutes": 3, "max": 10}, state, fetch)
+    entries, decisions = ob.build({"min_minutes": 3, "max": 10}, state, fetch, pause=0)
     assert urls[1].endswith("resumptionToken=!f!u!2")  # "!" not percent-encoded
     assert [e.title for e in entries] == ["Lang (1929)"]
     e = entries[0]
@@ -40,3 +40,17 @@ def test_harvest_and_build():
 
 def test_seconds():
     assert ob.seconds("PT1H2M3S") == 3723 and ob.seconds("PT46S") == 46 and ob.seconds("") is None
+
+
+def test_failed_harvest_keeps_partial_records():
+    pd = "https://creativecommons.org/publicdomain/mark/1.0/"
+    first = page([RECORD.format(id=1, title="Lang", extent="PT12M3S", lic=pd)], token="!t")
+
+    def fetch(url, **kw):
+        if "resumptionToken" in url:
+            raise TimeoutError("timed out")
+        return first
+
+    state = {}
+    ob.harvest(state, fetch, pause=0)
+    assert list(state["records"]) == ["oai:openimages.eu:1"] and "last" not in state

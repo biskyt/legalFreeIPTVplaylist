@@ -14,9 +14,7 @@ returns at busy times.
 from __future__ import annotations
 
 import random
-import threading
 import urllib.parse
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date
@@ -53,19 +51,15 @@ def _first_variant(body: bytes) -> str | None:
 
 
 class Checker:
-    def __init__(self, *, workers: int = 48, per_host: int = 4, timeout: float = 8, probe=net.probe):
+    """Checks streams; per-host limits and back-off come from the shared limiter in net.probe."""
+
+    def __init__(self, *, workers: int = 48, timeout: float = 8, probe=net.probe):
         self.workers = workers
         self.timeout = timeout
         self._probe = probe
-        self._lock = threading.Lock()
-        self._hosts: dict[str, threading.Semaphore] = defaultdict(lambda: threading.Semaphore(per_host))
 
     def _get(self, url: str, ua: str | None, ref: str | None) -> net.Probe:
-        host = urllib.parse.urlparse(url).hostname or ""
-        with self._lock:
-            sem = self._hosts[host]
-        with sem:
-            return self._probe(url, user_agent=ua, referrer=ref, timeout=self.timeout)
+        return self._probe(url, user_agent=ua, referrer=ref, timeout=self.timeout)
 
     def check(self, url: str, ua: str | None = None, ref: str | None = None, labels=()) -> Result:
         p = self._get(url, ua, ref)
@@ -136,7 +130,8 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, sample: float = 
         detail = tried[0][1].detail if tried else ""
         return None, Decision("health", e.id, False, f"dead: {detail}".strip()), _urls(tried)
 
-    checked = [e for e in entries if wanted(e)]
+    # One host after another, so the workers spread over many servers instead of queueing on one.
+    checked = net.round_robin((e for e in entries if wanted(e)), key=lambda e: net.host_of(_candidates(e)[0]["url"]))
     with ThreadPoolExecutor(checker.workers) as pool:
         outcomes = dict(zip((id(e) for e in checked), pool.map(task, checked), strict=True))
 

@@ -3,14 +3,15 @@ from freeplaylist import build, config, feeds, m3u
 
 def test_feed_deduplicates_and_orders(entry):
     entries = [
-        entry(id="b", title="B", group="FAST: Pluto TV"),
-        entry(id="a", title="A", group="Live: News", url="https://x/a.m3u8"),
+        entry(id="b", title="B", group="DE | Pluto TV", extra={"platform": "Pluto TV"}),
+        entry(id="a", title="A", group="DE | News", url="https://x/a.m3u8"),
+        entry(id="f", title="F", group="FR | News", url="https://x/f.m3u8"),
         entry(id="a", title="A again", url="https://x/other.m3u8"),
         entry(id="c", title="C", url="https://x/a.m3u8"),
         entry(id="m", title="Movie", kind="movie"),
     ]
     feed, decisions = feeds.build("live", {"kind": "live"}, entries)
-    assert [e.id for e in feed.entries] == ["a", "b"]
+    assert [e.id for e in feed.entries] == ["a", "b", "f"]  # by country code, broadcasters before streaming services
     assert len(decisions) == 2
 
 

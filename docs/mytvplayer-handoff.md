@@ -99,3 +99,7 @@ playlists (and others that use the same attributes) look like in the app.
    the id cut at `@`.
 4. **Per-language playlists** are published at `…/languages/<ISO 639-3>.m3u` (e.g. `languages/fra.m3u`). These
    are ordinary playlists; no work is needed, but the app's "free channels" setup could offer them.
+5. **Group names.** Live channel groups now start with a two-letter country code (`DE | News`, `UK | News`,
+   `US | Pluto TV`, `INT | News` for no country), which `CategoryLanguageDetector` already reads. Some ISO
+   country codes clash with the language codes it knows: `AR` is Argentina here but Arabic in its table, and
+   `AF` is Afghanistan, not African. Using `tvg-country` (item 1) avoids the clash.

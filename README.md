@@ -1,6 +1,6 @@
 # Legal free IPTV playlist
 
-M3U playlists of **legally free** live TV, free ad-supported (FAST) channels, and public-domain or openly
+M3U playlists of **legally free** live TV (including free, ad-supported services such as Pluto TV), and public-domain or openly
 licensed movies and TV series, for any IPTV app. A GitHub Action rebuilds them every day and publishes them to
 GitHub Pages.
 
@@ -14,7 +14,7 @@ useful to anyone who wants free TV without a subscription.
 | URL | Contents |
 |---|---|
 | `https://biskyt.github.io/legalFreeIPTVplaylist/playlist.m3u` | Everything: live, movies and series |
-| `https://biskyt.github.io/legalFreeIPTVplaylist/live.m3u` | Live TV and FAST channels |
+| `https://biskyt.github.io/legalFreeIPTVplaylist/live.m3u` | Live TV channels |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/vod.m3u` | Movies and series |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/movies.m3u` | Movies only |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/series.m3u` | Series only |
@@ -30,6 +30,10 @@ know the convention list films and episodes as channels, grouped as `Movies: …
   `DE;AT`), the attributes iptv-org's playlists also use, so players can filter by them. There's also one
   playlist per language (any language with at least 10 entries). Silent films appear in every language's list.
   Live channels get their languages from iptv-org; films from their source, or a per-collection default.
+- **Country in group names:** live channel groups start with a two-letter country code, e.g. `DE | News`,
+  `US | Pluto TV`, so players that only filter on group names can still sort by country. Britain is written
+  `UK` there, as IPTV players expect (`tvg-country` uses the ISO code, `GB`); channels without a country use
+  `INT`.
 - **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
   load it automatically. It's built daily with [iptv-org's EPG grabber](https://github.com/iptv-org/epg) for
   every channel that has a known guide source (roughly half of them); the guide data belongs to those sources.
@@ -45,7 +49,7 @@ Each build also publishes:
 
 ## What's included, and why it's legal
 
-### Live TV and FAST channels
+### Live TV
 Channels come from the [iptv-org](https://github.com/iptv-org/iptv) database. iptv-org lists any public stream
 it can find, including unofficial restreams, so **this project does not take its list as is**. A stream is
 included only if the automatic rules in [`config/live_hosts.yaml`](config/live_hosts.yaml) find it official:
@@ -54,7 +58,7 @@ included only if the automatic rules in [`config/live_hosts.yaml`](config/live_h
   NSFW, or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host;
   and a stream that only plays with a spoofed user agent or referrer (unless the host is an official one).
 - **Accepted:** a stream on the broadcaster's own domain, or on a delivery domain the broadcaster runs; on a
-  FAST service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV, Xumo Play); on a licensed
+  free, ad-supported streaming service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV, Xumo Play); on a licensed
   playout service (Amagi, Wurl and similar) or a US public-access platform; on a general CDN whose address
   names the broadcaster; or on any host that **the broadcaster's own website links to** (the build checks
   the sites of channels whose streams nothing else confirms, and caches the result for a week).
@@ -93,7 +97,7 @@ you're outside the US, check what applies where you live. (Films from Wikimedia 
 they're free in their country of origin too.)
 
 ### Your responsibilities
-- FAST channels and many broadcasters limit their streams to certain countries (`tvg-country` shows where a
+- Free streaming services and many broadcasters limit their streams to certain countries (`tvg-country` shows where a
   live feed is meant to be watched). This project doesn't get around geo-blocking, and you shouldn't either.
 - In the UK, you need a [TV Licence](https://www.tvlicensing.co.uk/) to watch or record live TV on any channel
   or service, including the live channels here. Other countries have their own rules.
@@ -106,13 +110,13 @@ they're free in their country of origin too.)
 | [iptv-org](https://github.com/iptv-org/iptv) | Database of publicly available live TV channels and streams (channels, streams, logos, blocklist) | Data published under the Unlicense (iptv-org/iptv and iptv-org/api) | iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only the streams its rules find official. Each channel belongs to its broadcaster; see credits.html for the list. |
 | [Internet Archive](https://archive.org/) | Public-domain and CC BY / BY-SA movies and TV episodes, their metadata and thumbnails (collections feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger, classic_tv) | Public domain in the US, or the CC licence shown on each item; see each item's page | Files are streamed directly from archive.org. Consider donating at https://archive.org/donate |
 | [Blender Studio (Blender Foundation) open movies](https://studio.blender.org/films/) | Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel, Cosmos Laundromat, Spring, Sprite Fright, Wing It!, Caminandes | Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film) | Credit: © Blender Foundation \| studio.blender.org. Streamed from the Internet Archive's copies. |
-| [Pluto TV](https://pluto.tv/) | Free, ad-supported (FAST) channels | Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners | Linked through jmp2.uk, a third-party redirector used by iptv-org, not an official Pluto TV service. Availability varies by country. |
-| [Samsung TV Plus](https://www.samsungtvplus.com/) | Free, ad-supported (FAST) channels | Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners | Some streams are linked through jmp2.uk, a third-party redirector. Availability varies by country. |
-| [Plex](https://www.plex.tv/live-tv/) | Free, ad-supported (FAST) channels | Free to watch from Plex; content and trademarks belong to Plex and its partners |  |
-| [The Roku Channel](https://therokuchannel.roku.com/) | Free, ad-supported (FAST) channels | Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners |  |
-| [Tubi](https://tubitv.com/) | Free, ad-supported (FAST) channels | Free to watch from Tubi; content and trademarks belong to Tubi and its partners |  |
-| [Rakuten TV](https://www.rakuten.tv/) | Free, ad-supported (FAST) channels | Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners | Availability varies by country. |
-| [Xumo Play](https://play.xumo.com/) | Free, ad-supported (FAST) channels | Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners | Availability varies by country. |
+| [Pluto TV](https://pluto.tv/) | Free, ad-supported streaming channels | Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners | Linked through jmp2.uk, a third-party redirector used by iptv-org, not an official Pluto TV service. Availability varies by country. |
+| [Samsung TV Plus](https://www.samsungtvplus.com/) | Free, ad-supported streaming channels | Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners | Some streams are linked through jmp2.uk, a third-party redirector. Availability varies by country. |
+| [Plex](https://www.plex.tv/live-tv/) | Free, ad-supported streaming channels | Free to watch from Plex; content and trademarks belong to Plex and its partners |  |
+| [The Roku Channel](https://therokuchannel.roku.com/) | Free, ad-supported streaming channels | Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners |  |
+| [Tubi](https://tubitv.com/) | Free, ad-supported streaming channels | Free to watch from Tubi; content and trademarks belong to Tubi and its partners |  |
+| [Rakuten TV](https://www.rakuten.tv/) | Free, ad-supported streaming channels | Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners | Availability varies by country. |
+| [Xumo Play](https://play.xumo.com/) | Free, ad-supported streaming channels | Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners | Availability varies by country. |
 | [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |
 | [Open Beelden (Netherlands Institute for Sound and Vision)](https://www.openbeelden.nl/) | Dutch archive films and newsreels | Public domain or CC BY / CC BY-SA, per item | Credit: Nederlands Instituut voor Beeld en Geluid / Open Beelden. Each item's maker and licence are listed in catalog.json and on its Open Beelden page. |
 

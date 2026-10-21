@@ -253,11 +253,16 @@ def build(api: dict[str, list], rules: Rules,
         title = channel["name"]
         if feed and not feed.get("is_main"):
             title = f"{title} {feed['name']}"
+        countries = feed_countries(feed, channel)
         if verdict.platform:
-            group, source = f"FAST: {verdict.platform.name}", verdict.platform.credit
+            group, source = verdict.platform.name, verdict.platform.credit
         else:
             cats = [categories.get(c, c.title()) for c in channel.get("categories") or [] if c != "general"]
-            group, source = f"Live: {cats[0] if cats else 'General'}", SOURCE
+            group, source = cats[0] if cats else "General", SOURCE
+        # A country code leads the group name ("DE | News"), for players that only filter on group names. Britain
+        # is written UK there, as IPTV providers and players expect; tvg-country keeps the ISO code (GB).
+        prefix = ("UK" if countries[0] == "GB" else countries[0]) if countries else "INT"
+        group = f"{prefix} | {group}"
         catchup = (rules.allow.get(cid) or {}).get("catchup") or {}
         entries.append(Entry(
             id=f"{cid}@{feed_id}" if feed_id else cid,
@@ -274,9 +279,10 @@ def build(api: dict[str, list], rules: Rules,
             catchup_source=catchup.get("source"),
             page=channel.get("website"),
             languages=languages.normalise_all((feed or {}).get("languages")),
-            countries=feed_countries(feed, channel),
+            countries=countries,
             extra={
                 "broadcaster": channel["name"],
+                "platform": verdict.platform.name if verdict.platform else None,
                 "country": channel.get("country"),
                 "reason": verdict.reason,
                 "labels": best.get("labels", []),
