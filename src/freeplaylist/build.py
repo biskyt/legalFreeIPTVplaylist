@@ -21,6 +21,11 @@ PAGES = "https://biskyt.github.io/legalFreeIPTVplaylist"
 REPO = "https://github.com/biskyt/legalFreeIPTVplaylist"
 
 
+# The source names used by --only, config/schedule.yaml and the snapshots.
+SOURCES = ("curated", "internet-archive-series", "wikimedia-commons", "internet-archive-movies", "open-beelden",
+           "iptv-org")
+
+
 class BuildError(Exception):
     pass
 
@@ -38,6 +43,7 @@ class Options:
     live: bool = True
     vod: bool = True
     all: bool = False  # harvest and check everything, ignoring the schedule
+    only: set[str] | None = None  # staged run: harvest just these sources (see SOURCES); others from snapshots
     day: date | None = None  # the night being built (UTC); defaults to today
     enforce_minimums: bool = True
 
@@ -61,13 +67,20 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]
     entries: list[Entry] = []
     decisions: list[Decision] = []
     harvested: set[str] = set()
+    missing: set[str] = set()
 
     def section(key: str, harvest) -> None:
         """One source's entries: harvested if due (or forced, or never harvested), otherwise its snapshot.
         A failed harvest falls back to the snapshot, so one broken source doesn't stop the build."""
         snap = snapshots.load(opts.state_dir, key)
         found = None
-        if opts.all or snap is None or schedule.due(sched, key, day):
+        if opts.only is not None and key not in opts.only:
+            # A staged run (--only): other sources come from their snapshots, or wait for their own stage.
+            if snap is None:
+                missing.add(key)
+                log.info("%s: no snapshot yet; left out until its stage runs", key)
+                return
+        elif opts.all or opts.only is not None or snap is None or schedule.due(sched, key, day):
             try:
                 found = harvest()
             except Exception as e:  # noqa: BLE001 - fall back to the last good results
@@ -124,6 +137,8 @@ def collect(opts: Options) -> tuple[list[Entry], list[Decision], dict, set[str]]
         matched = enrich.apply(entries, enrich.load(wd_state))
         config.save_state(wd_path, wd_state)
         log.info("wikidata: ids for %d movies", matched)
+    if missing:
+        opts.enforce_minimums = False  # a staged first harvest: some feeds fill up in later stages
     return entries, decisions + dropped, load("credits").get("sources") or {}, harvested
 
 

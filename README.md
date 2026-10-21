@@ -172,6 +172,12 @@ a server says it's busy), and the big checks go round the hosts in turn.
 To refresh everything at once, run `python -m freeplaylist build --all`, or start the workflow by hand with
 **full** ticked.
 
+**Staged runs.** To fill the playlists a source at a time (for example the very first time, or after deleting
+the `state` branch), start the workflow by hand with **only** set to one or more sources, e.g. `iptv-org`, then
+`curated,internet-archive-series,internet-archive-movies`, then `wikimedia-commons`, then `open-beelden`
+(`--only=...` locally). Each run publishes what has been harvested so far; sources not harvested yet are left
+out until their stage runs.
+
 **Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC, on
 manual runs, and on pushes that change code or config. It deploys to GitHub Pages. If a build comes out broken
 (an upstream API down, too few entries), the job fails and the previous playlists stay online. To enable

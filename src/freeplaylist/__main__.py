@@ -23,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--live-only", action="store_true")
     b.add_argument("--vod-only", action="store_true")
     b.add_argument("--all", action="store_true", help="harvest and check everything, ignoring config/schedule.yaml")
+    b.add_argument("--only", help="staged run: harvest only these comma-separated sources; the rest come from "
+                                  f"their snapshots ({', '.join(build.SOURCES)})")
     b.add_argument("--no-minimums", action="store_true", help="don't fail on small feeds (partial builds)")
 
     c = sub.add_parser("credits", help="regenerate the README credits section from config/credits.yaml")
@@ -44,10 +46,13 @@ def main(argv: list[str] | None = None) -> int:
         print("README updated" if changed else "README already up to date")
         return 0
 
+    only = {x.strip() for x in args.only.split(",") if x.strip()} if args.only else None
+    if only and only - set(build.SOURCES):
+        parser.error(f"unknown sources: {', '.join(sorted(only - set(build.SOURCES)))}")
     opts = build.Options(
         out=args.out, state_dir=args.state, api_dir=args.api_dir, health=not args.no_health,
         website_check=not args.no_website_check,
-        live=not args.vod_only, vod=not args.live_only, all=args.all,
+        live=not args.vod_only, vod=not args.live_only, all=args.all, only=only,
         enforce_minimums=not (args.no_minimums or args.live_only or args.vod_only),
     )
     try:

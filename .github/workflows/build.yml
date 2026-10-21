@@ -9,6 +9,10 @@ on:
         description: "Harvest and check everything now, ignoring the nightly schedule (slow)"
         type: boolean
         default: false
+      only:
+        description: "Or harvest only these sources (comma-separated: iptv-org, curated, internet-archive-series, internet-archive-movies, wikimedia-commons, open-beelden)"
+        type: string
+        default: ""
   push:
     branches: [main]
     paths: ["src/**", "config/**", "pyproject.toml", ".github/workflows/build.yml"]
@@ -46,7 +50,7 @@ jobs:
 
       # Fails (and leaves the previously deployed site live) if any feed is broken or too small.
       # Only tonight's share of sources and stream checks runs (config/schedule.yaml); the rest come from state/.
-      - run: python -m freeplaylist build --out site --state state ${{ inputs.full && '--all' || '' }}
+      - run: python -m freeplaylist build --out site --state state ${{ inputs.full && '--all' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
 
       # TV guide: iptv-org's grabber fetches the channels the build listed in state/epg.channels.xml. If it fails
       # or runs out of time, the previous guide (kept in state/) is published instead, so playlists still deploy.
