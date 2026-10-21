@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 
 from .. import languages, net
 from ..models import Decision, Entry
+from ..progress import Progress
 from .internet_archive import _movie_title, _year, license_kind
 
 OAI = "https://www.openbeelden.nl/feeds/oai/"
@@ -114,12 +115,25 @@ def harvest(state: dict, fetch=net.get_bytes, pause: float = 1.0, max_pages: int
     done = set(state.setdefault("months", []))
     today = datetime.now(UTC)
     budget = [max_pages]
+    progress = Progress("open beelden: pages (at most)", max_pages)
+
+    def counted(*a, **kw):
+        progress.done()
+        return fetch(*a, **kw)
+
+    with progress:
+        _harvest(state, records, done, today, counted, pause, budget, first_year)
+    return state
+
+
+def _harvest(state: dict, records: dict, done: set, today: datetime, fetch, pause: float, budget: list[int],
+             first_year: int) -> None:
     try:
         if state.get("last"):
             if _pages({"verb": "ListRecords", "metadataPrefix": "oai_oi", "from": state["last"]}, records, fetch,
                       pause, budget):
                 state["last"] = today.strftime("%Y-%m-%d")
-            return state
+            return
         for month in _months(first_year, today):
             if month in done:
                 continue
@@ -129,13 +143,12 @@ def harvest(state: dict, fetch=net.get_bytes, pause: float = 1.0, max_pages: int
                       "until": f"{month}-{last_day:02d}"}
             if not _pages(window, records, fetch, pause, budget):
                 log.info("open beelden: page budget used; %d records so far, continuing next run", len(records))
-                return state
+                return
             done.add(month)
             state["months"] = sorted(done)
         state["last"] = today.strftime("%Y-%m-%d")  # every month harvested: from now on, changes only
     except Exception as e:  # noqa: BLE001 - use what we have; the next run carries on
         log.warning("open beelden: harvest stopped (%s); using %d records", e, len(records))
-    return state
 
 
 def build(cfg: dict, state: dict, fetch=net.get_bytes, pause: float = 1.0) -> tuple[list[Entry], list[Decision]]:

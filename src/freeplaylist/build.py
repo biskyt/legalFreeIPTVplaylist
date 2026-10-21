@@ -100,6 +100,7 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
             if snap[2] == day.isoformat():
                 harvested.add(key)
         elif opts.all or opts.only is not None or snap is None or tonight.due(key):
+            log.info("%s: harvesting", key)
             try:
                 found = harvest()
             except Exception as e:  # noqa: BLE001 - fall back to the last good results
@@ -323,8 +324,10 @@ licensed movies and series, as M3U playlists.
 Rebuilt daily. This site only links to streams; it hosts no video.</p>
 <table><thead><tr><th>Playlist</th><th>Contents</th><th>Entries</th></tr></thead><tbody>{rows(main)}</tbody></table>
 <p>Add <code>{PAGES}/playlist.m3u</code> (everything) to your IPTV app, or the separate feeds if your app
-takes one playlist per type. Movies and series use an open <a href="{REPO}/blob/main/FORMAT.md">M3U
-convention</a>; apps that don't know it show them as groups.</p>
+takes one playlist per type. The TV guide, <a href="epg.xml.gz">epg.xml.gz</a> (XMLTV), is named in the header of
+every playlist with live channels, so most apps load it automatically; otherwise add
+<code>{PAGES}/epg.xml.gz</code> as the EPG source. Movies and series use an open
+<a href="{REPO}/blob/main/FORMAT.md">M3U convention</a>; apps that don't know it show them as groups.</p>
 <h2>By language</h2>
 <p>Everything in one language: live channels, then movies and series. Every entry is also tagged with
 <code>tvg-language</code> and <code>tvg-country</code>, so players can filter the main playlists too. Silent films

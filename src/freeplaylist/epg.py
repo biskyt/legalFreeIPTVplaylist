@@ -37,6 +37,7 @@ from xml.sax.saxutils import escape, quoteattr
 
 from . import languages, net, schedule
 from .models import Entry
+from .progress import Progress
 
 log = logging.getLogger("freeplaylist")
 IPTV_EPG = "https://iptv-epg.org/files/epg-{}.xml.gz"
@@ -197,11 +198,17 @@ def fast(state_dir: Path, out: Path) -> int:
     folder = state_dir / "epg"
     the_plan = json.loads((folder / "plan.json").read_text(encoding="utf-8"))
     merger = Merger()
-    for source, url, ids in fast_sources(the_plan):
-        try:
-            log.info("epg: %s: %d channels", url, merger.add(source, _download(url), ids))
-        except Exception as e:  # noqa: BLE001 - not every country has a file; any one file may fail for a night
-            log.info("epg: %s: %s", url, e)
+    sources = fast_sources(the_plan)
+    failed = []
+    with Progress("epg: ready-made files", len(sources)) as progress:
+        for source, url, ids in sources:
+            try:
+                merger.add(source, _download(url), ids)
+            except Exception as e:  # noqa: BLE001 - not every country has a file; any one file may fail for a night
+                failed.append(f"{'/'.join(url.rsplit('/', 2)[-2:])} ({e})")
+            progress.done()
+    if failed:  # mostly countries iptv-epg.org has no file for
+        log.info("epg: %d files unavailable: %s", len(failed), "; ".join(failed)[:2000])
     covered = sorted(merger.owner)
     out.parent.mkdir(parents=True, exist_ok=True)
     merger.write(out)

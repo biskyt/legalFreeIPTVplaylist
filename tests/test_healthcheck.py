@@ -120,7 +120,7 @@ def test_long_check_logs_its_progress(entry, caplog):
     es = [entry(id=f"c{i}", url=f"https://h{i % 2}.example/{i}.m3u8") for i in range(4)]
     kept, _ = healthcheck.run(es, {}, Slow(), progress_every=0.02)
     assert len(kept) == 4
-    assert "checking 4 entries on 2 hosts" in caplog.text and "of 4 checked; most left: h" in caplog.text
+    assert "health: 4 to do" in caplog.text and "health: " in caplog.text and "of 4 done; most left: h" in caplog.text
 
 
 def test_file_checks_ask_for_only_the_start():

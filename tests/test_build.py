@@ -59,6 +59,7 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     blender = next(i for i in catalog["items"] if i["id"] == "blender.BigBuckBunny_124")
     assert blender["license"] == "CC BY 3.0" and "Blender Foundation" in blender["attribution"]
     assert "DW" in (out / "credits.html").read_text()
+    assert 'href="epg.xml.gz"' in (out / "index.html").read_text()
     assert (tmp_path / "state" / "ia_cache.json").exists()
     _, english = m3u.parse((out / "languages" / "eng.m3u").read_text())
     assert "DW.de@SD" in {e["tvg-id"] for e in english}

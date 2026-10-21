@@ -12,6 +12,7 @@ import urllib.parse
 
 from .. import languages, net
 from ..models import Decision, Entry
+from ..progress import Progress
 from .internet_archive import _movie_title, _slug, _text
 
 API = "https://commons.wikimedia.org/w/api.php"
@@ -42,12 +43,15 @@ def fetch(query: str, limit: int) -> list[dict]:
         "viextmetadatafilter": "LicenseShortName|LicenseUrl|Artist|ObjectName|DateTimeOriginal|ImageDescription",
     }
     cont: dict = {}
-    while len(pages) < limit:
-        data = net.get_json(f"{API}?{urllib.parse.urlencode({**params, **cont})}")
-        pages += data.get("query", {}).get("pages", [])
-        cont = data.get("continue") or {}
-        if not cont:
-            break
+    with Progress(f"wikimedia commons: files (at most) for {query[:40]}", limit) as progress:
+        while len(pages) < limit:
+            data = net.get_json(f"{API}?{urllib.parse.urlencode({**params, **cont})}")
+            batch = data.get("query", {}).get("pages", [])
+            pages += batch
+            progress.done(n=len(batch))
+            cont = data.get("continue") or {}
+            if not cont:
+                break
     return pages[:limit]
 
 

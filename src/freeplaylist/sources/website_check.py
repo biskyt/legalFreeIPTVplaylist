@@ -16,6 +16,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 from .. import net, schedule
+from ..progress import Progress
 
 # Links worth following from a home page to its live player: "live", "direct", "en vivo", "ao vivo", "canlı"...
 _LIVE_LINK = re.compile(r"live|direct|directo|vivo|watch|stream|player|senal|canli|tv-?online|en-?ligne", re.I)
@@ -85,7 +86,8 @@ def find_hosts(sites: set[str], state: dict, tonight: schedule.Tonight, *, every
     # New sites first, then the oldest results; spread over hosts so no one server gets a run of requests.
     todo = sorted((s for s in sites if stale(s)), key=lambda s: state.get(s, {}).get("t", 0))[:max_sites]
     todo = net.round_robin(todo, key=net.host_of)
-    with ThreadPoolExecutor(workers) as pool:
+    with Progress("website check", len(todo)) as progress, ThreadPoolExecutor(workers) as pool:
         for site, (hosts, ok) in zip(todo, pool.map(lambda s: site_hosts(s, fetch), todo), strict=True):
             state[site] = {"t": now, "ok": ok, "hosts": sorted(hosts)}
+            progress.done()
     return {s: set(state[s]["hosts"]) for s in sites if s in state}

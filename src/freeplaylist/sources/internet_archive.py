@@ -20,6 +20,7 @@ from datetime import date
 
 from .. import languages, net
 from ..models import Decision, Entry
+from ..progress import Progress
 
 SCRAPE = "https://archive.org/services/search/v1/scrape"
 METADATA = "https://archive.org/metadata/{}"
@@ -159,8 +160,10 @@ class MetadataCache:
             except Exception as e:  # noqa: BLE001 - one bad item must not stop the build
                 return ident, {"error": str(e)[:200]}
 
-        with ThreadPoolExecutor(self.workers) as pool:
+        with Progress("internet archive: item details", len(missing)) as progress, \
+                ThreadPoolExecutor(self.workers) as pool:
             for ident, summary in pool.map(fetch, missing):
+                progress.done()
                 if summary is not None and "error" in summary:
                     continue  # keep any older copy; try again next run
                 self.data[ident] = {"t": now, "s": summary}
