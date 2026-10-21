@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       only:
-        description: "Or harvest only these sources (comma-separated: iptv-org, curated, internet-archive-series, internet-archive-movies, wikimedia-commons, open-beelden)"
+        description: "Or harvest only these sources (comma-separated: iptv-org, curated, internet-archive-series, internet-archive-movies, wikimedia-commons)"
         type: string
         default: ""
 
@@ -69,8 +69,6 @@ jobs:
         run: python -m freeplaylist build $BUILD --phase harvest --source wikimedia-commons
       - name: Harvest Internet Archive movies
         run: python -m freeplaylist build $BUILD --phase harvest --source internet-archive-movies
-      - name: Harvest Open Beelden
-        run: python -m freeplaylist build $BUILD --phase harvest --source open-beelden
       - name: Harvest live channels (iptv-org and broadcaster websites)
         run: python -m freeplaylist build $BUILD --phase harvest --source iptv-org
       - name: Check live streams

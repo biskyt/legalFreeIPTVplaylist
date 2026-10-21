@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import config, credits, enrich, epg, feeds, healthcheck, languages, m3u, net, schedule, snapshots
 from .models import Decision, Entry
-from .sources import curated, internet_archive, iptv_org, open_beelden, website_check, wikimedia_commons
+from .sources import curated, internet_archive, iptv_org, website_check, wikimedia_commons
 
 log = logging.getLogger("freeplaylist")
 PAGES = "https://biskyt.github.io/legalFreeIPTVplaylist"
@@ -22,8 +22,7 @@ REPO = "https://github.com/biskyt/legalFreeIPTVplaylist"
 
 
 # The source names used by --only, config/schedule.yaml and the snapshots.
-SOURCES = ("curated", "internet-archive-series", "wikimedia-commons", "internet-archive-movies", "open-beelden",
-           "iptv-org")
+SOURCES = ("curated", "internet-archive-series", "wikimedia-commons", "internet-archive-movies", "iptv-org")
 # A build can run in parts (one per workflow step, so progress shows step by step), sharing state/: "harvest"
 # one source into its snapshot; "check-live" / "check-vod" check tonight's streams from the snapshots; "publish"
 # builds the site from the snapshots and the last checks. Without a phase, a build does all of it at once.
@@ -42,7 +41,7 @@ class Options:
     api_dir: Path | None = None  # local copy of the iptv-org API (tests / offline)
     health: bool = True
     website_check: bool = True  # fetch broadcasters' websites to confirm streams (see sources/website_check.py)
-    extra_vod: bool = True  # Wikimedia Commons and Open Beelden
+    extra_vod: bool = True  # Wikimedia Commons
     enrich: bool = True  # TMDB/IMDb ids and posters from Wikidata
     live: bool = True
     vod: bool = True
@@ -83,9 +82,8 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     harvested: set[str] = set()
     missing: set[str] = set()
 
-    def section(key: str, harvest, filling: bool = False) -> None:
-        """One source's entries: harvested if due (or forced, or never harvested, or `filling`: a first harvest
-        spread over several nights), otherwise its snapshot.
+    def section(key: str, harvest) -> None:
+        """One source's entries: harvested if due (or forced, or never harvested), otherwise its snapshot.
         A failed harvest falls back to the snapshot, so one broken source doesn't stop the build."""
         if opts.phase == "harvest" and key != opts.source:
             return
@@ -100,7 +98,7 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
                 return
             if snap[2] == day.isoformat():
                 harvested.add(key)
-        elif opts.all or opts.only is not None or snap is None or filling or tonight.due(key):
+        elif opts.all or opts.only is not None or snap is None or tonight.due(key):
             log.info("%s: harvesting", key)
             try:
                 found = harvest()
@@ -138,14 +136,6 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
             section("wikimedia-commons", lambda: wikimedia_commons.build(load("commons"), exclude))
         section("internet-archive-movies", lambda: internet_archive.movies(movies_cfg, cache, deny))
         config.save_state(ia_state_path, cache.data)
-        if opts.extra_vod:
-            ob_path = opts.state_dir / "open_beelden.json"
-            ob_state = config.load_state(ob_path)
-            try:
-                section("open-beelden", lambda: open_beelden.build(load("open_beelden"), ob_state),
-                        filling=open_beelden.filling(ob_state))
-            finally:
-                config.save_state(ob_path, ob_state)
     elif opts.live:
         # Curated live items still belong in a live-only build.
         found = curated.build({"direct": load("curated").get("direct")}, cache)

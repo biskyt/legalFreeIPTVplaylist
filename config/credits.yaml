@@ -89,14 +89,6 @@ sources:
     license: Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file
     note: Each film's author and licence are listed in catalog.json and on its Commons page.
 
-  open-beelden:
-    name: Open Beelden (Netherlands Institute for Sound and Vision)
-    url: https://www.openbeelden.nl/
-    provides: Dutch archive films and newsreels
-    license: Public domain or CC BY / CC BY-SA, per item
-    attribution: "Nederlands Instituut voor Beeld en Geluid / Open Beelden"
-    note: Each item's maker and licence are listed in catalog.json and on its Open Beelden page.
-
   iptv-epg-org:
     guide: true   # listed in the TV guide section of the site
     name: IPTV-EPG.org

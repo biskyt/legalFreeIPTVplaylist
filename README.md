@@ -95,11 +95,11 @@ streams are dropped; a channel with several streams falls back to the next worki
 
 ### Movies
 Movies come from [Wikimedia Commons](https://commons.wikimedia.org), the [Internet Archive](https://archive.org/),
-Blender Studio's open movies and [Open Beelden](https://www.openbeelden.nl) (Dutch archive film).
+and Blender Studio's open movies.
 
 **Wikimedia Commons** only keeps films that are free in the US *and* in their country of origin, so these are
 the safest choice outside the US. When the same film is available from Commons and the Archive, the Commons
-copy is used. **Open Beelden** items are public domain or CC BY / BY-SA, as stated on each item.
+copy is used.
 
 **Internet Archive** uploaders set licence and date details themselves, so an item is used only when:
 - it has a public-domain mark and is dated **1977 or earlier**; or
@@ -142,7 +142,6 @@ they're free in their country of origin too.)
 | [Rakuten TV](https://www.rakuten.tv/) | Free, ad-supported streaming channels | Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners | Availability varies by country. |
 | [Xumo Play](https://play.xumo.com/) | Free, ad-supported streaming channels | Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners | Availability varies by country. |
 | [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |
-| [Open Beelden (Netherlands Institute for Sound and Vision)](https://www.openbeelden.nl/) | Dutch archive films and newsreels | Public domain or CC BY / CC BY-SA, per item | Credit: Nederlands Instituut voor Beeld en Geluid / Open Beelden. Each item's maker and licence are listed in catalog.json and on its Open Beelden page. |
 | [IPTV-EPG.org](https://iptv-epg.org/) | TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list | Free service; listings belong to the broadcasters. Ask us and we'll remove them | Downloaded once a night, per country. |
 | [i.mjh.nz (Matt Huisman)](https://github.com/matthuisman/i.mjh.nz) | TV guide listings (XMLTV) for Pluto TV, Samsung TV Plus, Plex and other free streaming services (Pluto TV and Samsung TV Plus channels matched by the service's own channel id) | Published openly on GitHub; listings belong to the services. Ask us and we'll remove them |  |
 | [iptv-org/epg](https://github.com/iptv-org/epg) | The grabber that collects listings for the remaining channels from the guide sites it supports | Software under the Unlicense; listings belong to the sites they come from | Each channel is grabbed once a week, 8 days ahead, in a nightly rotation. |
@@ -182,9 +181,8 @@ other people's servers, so each night does a share of it ([`config/schedule.yaml
   night checks one group plus any stream never seen before. The broadcasters' websites (the website rule above)
   rotate the same way.
 - **Movies and series:** each source is harvested once a week, on its own day (curated films Monday, Archive
-  series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday, Open Beelden Friday). On that day, its
-  new items and a quarter of the rest are checked. Open Beelden's feed is slow, so its first harvest carries on
-  every night until the whole archive has been read once; after that, it's read again once a month.
+  series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday). On that day, its new items and a
+  quarter of the rest are checked.
 - **TV guide:** the ready-made guides are fetched every night; the grabber's channels (only those no ready-made
   guide covers) rotate, one group a night, 8 days ahead each time.
 
@@ -197,8 +195,7 @@ To refresh everything at once, run `python -m freeplaylist build --all`, or star
 
 **Staged runs.** To fill the playlists a source at a time (for example the very first time, or after deleting
 the `state` branch), start the workflow by hand with **only** set to one or more sources, e.g. `iptv-org`, then
-`curated,internet-archive-series,internet-archive-movies`, then `wikimedia-commons`, then `open-beelden`
-(`--only=...` locally). Each run publishes what has been harvested so far; sources not harvested yet are left
+`curated,internet-archive-series,internet-archive-movies`, then `wikimedia-commons` (`--only=...` locally). Each run publishes what has been harvested so far; sources not harvested yet are left
 out until their stage runs.
 
 **Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC and on
@@ -214,7 +211,7 @@ Layout:
 config/        what to include: sources, rules, allow/deny lists, feeds, credits
 src/freeplaylist/
   sources/     iptv_org.py (live + rules), website_check.py, internet_archive.py (movies, series),
-               wikimedia_commons.py, open_beelden.py, curated.py
+               wikimedia_commons.py, curated.py
   enrich.py (Wikidata ids)  epg.py  languages.py  healthcheck.py  feeds.py  m3u.py  credits.py  build.py
 tests/         offline tests (fixtures only)
 FORMAT.md      the M3U movie/series convention

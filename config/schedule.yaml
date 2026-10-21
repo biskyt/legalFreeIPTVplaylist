@@ -11,7 +11,6 @@ sources:
   internet-archive-series: {days: [1]}
   wikimedia-commons: {days: [2]}
   internet-archive-movies: {days: [3]}
-  open-beelden: {days: [4], every_weeks: 1}  # 2 = every other week
 
 # Live streams and broadcasters' websites are split into this many groups by host name; each night checks one
 # group, plus streams never seen before. Other streams keep their last result.
