@@ -32,8 +32,8 @@ jobs:
     env:
       BUILD: --out site --state state ${{ inputs.full && '--all' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -85,7 +85,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: python -m freeplaylist epg fast --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: Grab tonight's other guides
@@ -129,7 +129,7 @@ jobs:
             commit -q -m "Build state from run ${{ github.run_id }}"
           git push --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" state
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -141,4 +141,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
