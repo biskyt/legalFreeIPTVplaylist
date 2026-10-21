@@ -33,3 +33,16 @@ def test_backoff_pauses_only_that_host():
     with limiter.slot("https://calm.example/"):
         pass
     assert time.monotonic() - start < 0.05
+
+
+def test_probe_read_stops_at_the_deadline():
+    import time
+
+    class Trickle:
+        def read1(self, n):
+            time.sleep(0.01)
+            return b"x"
+
+    start = time.monotonic()
+    body = net._read_start(Trickle(), 65536, time.monotonic() + 0.1)
+    assert 0 < len(body) < 65536 and time.monotonic() - start < 1

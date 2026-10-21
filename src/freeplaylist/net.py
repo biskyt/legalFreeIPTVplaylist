@@ -124,6 +124,21 @@ class Probe:
     error: str | None = None
 
 
+def _read_start(resp, max_bytes: int, deadline: float) -> bytes:
+    """Up to max_bytes of the body, but stop at the deadline: the socket timeout only limits each read, so a live
+    server that trickles data could otherwise hold a check open for hours."""
+    body = b""
+    try:
+        while len(body) < max_bytes and time.monotonic() < deadline:
+            chunk = resp.read1(max_bytes - len(body))
+            if not chunk:
+                break
+            body += chunk
+    except http.client.IncompleteRead as e:
+        body += e.partial  # live servers often cut the connection; what arrived still counts
+    return body
+
+
 def probe(url: str, *, user_agent: str | None = None, referrer: str | None = None, timeout: float = 8,
           max_bytes: int = 65536, retries: int = 1) -> Probe:
     """Fetch the start of a URL the way a player would, following redirects. A throttled answer (429/503) is
@@ -137,10 +152,7 @@ def probe(url: str, *, user_agent: str | None = None, referrer: str | None = Non
             with LIMITER.slot(url):
                 req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    try:
-                        body = resp.read(max_bytes)
-                    except http.client.IncompleteRead as e:
-                        body = e.partial  # live servers often cut the connection; what arrived still counts
+                    body = _read_start(resp, max_bytes, time.monotonic() + 2 * timeout)
                     LIMITER.ok(url)
                     return Probe(resp.status, resp.geturl(), body)
         except urllib.error.HTTPError as e:
