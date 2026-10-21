@@ -103,3 +103,21 @@ def test_grace_stream_rechecked_next_night_even_if_not_due(entry):
     state = {"https://x/flaky.m3u8": {"ok": "2026-10-19", "fails": 1}}
     kept, reasons, state = run([e], {}, state, due=lambda e: False)
     assert not kept and reasons["flaky"].startswith("dead")  # confirmed dead the next night, not a week later
+
+
+def test_long_check_logs_its_progress(entry, caplog):
+    import logging
+    import time
+
+    class Slow:
+        workers = 1
+
+        def check(self, *a, **kw):
+            time.sleep(0.05)
+            return healthcheck.Result("ok")
+
+    caplog.set_level(logging.INFO, logger="freeplaylist")
+    es = [entry(id=f"c{i}", url=f"https://h{i % 2}.example/{i}.m3u8") for i in range(4)]
+    kept, _ = healthcheck.run(es, {}, Slow(), progress_every=0.02)
+    assert len(kept) == 4
+    assert "checking 4 entries on 2 hosts" in caplog.text and "of 4 checked; most left: h" in caplog.text

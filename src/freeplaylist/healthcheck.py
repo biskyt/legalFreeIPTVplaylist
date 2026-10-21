@@ -13,7 +13,10 @@ definite answer (such as 404), not for a timeout or server error, which archive.
 
 from __future__ import annotations
 
+import logging
+import threading
 import urllib.parse
+from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
@@ -22,6 +25,7 @@ from datetime import date
 from . import net
 from .models import Decision, Entry
 
+log = logging.getLogger("freeplaylist")
 GEO_STATUSES = {401, 403, 451}
 MAX_FAILS = 2
 
@@ -102,7 +106,7 @@ def candidates(e: Entry) -> list[dict]:
 
 def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[Entry], bool] | None = None,
         today: str | None = None, keep_on_error: bool = False,
-        check: bool = True) -> tuple[list[Entry], list[Decision]]:
+        check: bool = True, progress_every: float = 60) -> tuple[list[Entry], list[Decision]]:
     """Entries that pass (in the same order), and a decision for every entry checked or dropped.
 
     An entry is checked when any of its streams is new, or when `due(entry)` says it's its turn (every entry by
@@ -157,9 +161,17 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[E
         return None
 
     # One host after another, so the workers spread over many servers instead of queueing on one.
-    checked = net.round_robin((e for e in entries if wanted(e)), key=lambda e: net.host_of(candidates(e)[0]["url"]))
-    with ThreadPoolExecutor(checker.workers) as pool:
-        outcomes = dict(zip((id(e) for e in checked), pool.map(task, checked), strict=True))
+    host = lambda e: net.host_of(candidates(e)[0]["url"])  # noqa: E731
+    checked = net.round_robin((e for e in entries if wanted(e)), key=host)
+    with _Progress(Counter(host(e) for e in checked), progress_every) as progress:
+        def counted(e: Entry):
+            try:
+                return task(e)
+            finally:
+                progress.done(host(e))
+
+        with ThreadPoolExecutor(checker.workers) as pool:
+            outcomes = dict(zip((id(e) for e in checked), pool.map(counted, checked), strict=True))
 
     kept, decisions = [], []
     for e in entries:
@@ -184,6 +196,38 @@ def run(entries: list[Entry], state: dict, checker: Checker, *, due: Callable[[E
         if new is not None:
             kept.append(new)
     return kept, decisions
+
+
+class _Progress:
+    """Logs how far a long check has got every `every` seconds, and which hosts it's still waiting on (a build log
+    shows nothing else until the check ends)."""
+
+    def __init__(self, left: Counter, every: float):
+        self.left, self.every = left, every
+        self.total = sum(left.values())
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+
+    def done(self, host: str) -> None:
+        with self._lock:
+            self.left[host] -= 1
+
+    def _report(self) -> None:
+        while not self._stop.wait(self.every):
+            with self._lock:
+                remaining = +self.left  # drops hosts with nothing left
+            waiting = ", ".join(f"{h} {n}" for h, n in remaining.most_common(3))
+            log.info("health: %d of %d checked; most left: %s", self.total - sum(remaining.values()), self.total,
+                     waiting or "-")
+
+    def __enter__(self):
+        if self.total:
+            log.info("health: checking %d entries on %d hosts", self.total, len(self.left))
+            threading.Thread(target=self._report, daemon=True).start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._stop.set()
 
 
 def _urls(tried: list[tuple[dict, Result]]) -> list[tuple[str, Result]]:
