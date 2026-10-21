@@ -348,10 +348,11 @@ def run(opts: Options) -> Result:
         raise BuildError("; ".join(problems))
     guide = feed_cfg.get("guide")
     if guide and opts.live:
-        # The workflow hands this list to iptv-org's EPG grabber, which writes the guide published at `guide`.
-        xml, count = epg.channels_xml(built["live"].entries, iptv_org.fetch_api(opts.api_dir, ("guides",))["guides"])
-        opts.state_dir.mkdir(parents=True, exist_ok=True)
-        (opts.state_dir / "epg.channels.xml").write_text(xml, encoding="utf-8")
-        log.info("epg: %d of %d live channels have a guide source", count, len(built["live"].entries))
+        # The guide is built after this, by the workflow: iptv-org's grabber for tonight's group of slow channels,
+        # then `freeplaylist epg`, which adds the ready-made guides and merges everything (see epg.py).
+        groups = config.load("schedule", opts.config_dir).get("live_groups", 7)
+        night = schedule.tonight(opts.day or datetime.now(UTC).date(), groups)
+        guides = iptv_org.fetch_api(opts.api_dir, ("guides",))["guides"]
+        epg.write_plan(opts.state_dir, epg.plan(built["live"].entries, guides, groups, night))
     write_site(opts.out, built, decisions, sources, f"{PAGES}/{guide}" if guide else None)
     return Result(built, decisions)

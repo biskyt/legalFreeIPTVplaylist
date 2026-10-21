@@ -50,8 +50,10 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     assert head == '#EXTM3U url-tvg="https://biskyt.github.io/legalFreeIPTVplaylist/epg.xml.gz"'
     assert body == "".join(result.feeds[n].body for n in ("live", "movies", "series"))
     assert (out / "movies.m3u").read_text().startswith("#EXTM3U\n")  # no guide header without live channels
-    channels = (tmp_path / "state" / "epg.channels.xml").read_text()
-    assert 'xmltv_id="DW.de@SD"' in channels and 'xmltv_id="Pluto1.us@SD"' in channels and "Nope" not in channels
+    plan = json.loads((tmp_path / "state" / "epg" / "plan.json").read_text())
+    mjh = "https://raw.githubusercontent.com/matthuisman/i.mjh.nz/master/de/epg.xml"
+    assert plan["mjh"][mjh] == {"dw": ["DW.de@SD"]}
+    assert (tmp_path / "state" / "epg" / "channels.xml").exists()
 
     catalog = json.loads((out / "catalog.json").read_text())
     blender = next(i for i in catalog["items"] if i["id"] == "blender.BigBuckBunny_124")
@@ -68,10 +70,3 @@ def test_dedupe_prefers_earlier_source(entry):
     again = entry(id="ia.BBB", kind="movie", url="https://archive.org/download/BBB/bbb.mp4")
     kept, dropped = build._dedupe([curated, again])
     assert kept == [curated] and dropped[0].item == "ia.BBB"
-
-
-def test_epg_channels_escape_names(entry):
-    from freeplaylist import epg
-    xml, count = epg.channels_xml([entry(id="A.us@SD", title="Tom & Jerry <TV>")],
-                                  [{"channel": "A.us", "feed": None, "site": "s", "site_id": "1", "lang": "en"}])
-    assert count == 1 and 'xmltv_id="A.us@SD">Tom &amp; Jerry &lt;TV&gt;</channel>' in xml

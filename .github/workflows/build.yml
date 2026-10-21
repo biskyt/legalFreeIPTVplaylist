@@ -52,21 +52,27 @@ jobs:
       # Only tonight's share of sources and stream checks runs (config/schedule.yaml); the rest come from state/.
       - run: python -m freeplaylist build --out site --state state ${{ inputs.full && '--all' || '' }} ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
 
-      # TV guide: iptv-org's grabber fetches the channels the build listed in state/epg.channels.xml. If it fails
-      # or runs out of time, the previous guide (kept in state/) is published instead, so playlists still deploy.
+      # TV guide (see src/freeplaylist/epg.py). The grabber scrapes tonight's group of slow channels for 8 days
+      # ahead; then `freeplaylist epg` downloads the ready-made guides and merges everything. If either fails,
+      # the previous guide (kept in state/) is published, so the playlists still deploy.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Grab TV guide
+      - name: Grab tonight's slow guides
         continue-on-error: true
-        timeout-minutes: 75
+        timeout-minutes: 60
         run: |
           git clone --depth 1 https://github.com/iptv-org/epg "$RUNNER_TEMP/epg"
           cd "$RUNNER_TEMP/epg"
           npm ci --no-audit --no-fund
-          npm run grab --- --channels="$GITHUB_WORKSPACE/state/epg.channels.xml" --days=2 --maxConnections=5 --delay=250 \
-            --output="$RUNNER_TEMP/guide.xml" --gzip="$RUNNER_TEMP/guide.xml.gz"
-          mv "$RUNNER_TEMP/guide.xml.gz" "$GITHUB_WORKSPACE/state/epg.xml.gz"
+          npm run grab --- --channels="$GITHUB_WORKSPACE/state/epg/channels.xml" --days=8 --maxConnections=5 \
+            --delay=250 --output="$RUNNER_TEMP/grabbed.xml" --gzip="$RUNNER_TEMP/grabbed.xml.gz"
+      - name: Build TV guide
+        continue-on-error: true
+        timeout-minutes: 45
+        run: |
+          python -m freeplaylist epg --state state --out "$RUNNER_TEMP/epg.xml.gz" --grabbed "$RUNNER_TEMP/grabbed.xml.gz"
+          mv "$RUNNER_TEMP/epg.xml.gz" state/epg.xml.gz
       - name: Publish TV guide
         run: |
           if [ -f state/epg.xml.gz ]; then cp state/epg.xml.gz site/epg.xml.gz; else echo "no guide yet"; fi

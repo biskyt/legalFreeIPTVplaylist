@@ -283,6 +283,7 @@ def build(api: dict[str, list], rules: Rules,
             extra={
                 "broadcaster": channel["name"],
                 "platform": verdict.platform.name if verdict.platform else None,
+                "main_feed": bool(feed and feed.get("is_main")),
                 "country": channel.get("country"),
                 "reason": verdict.reason,
                 "labels": best.get("labels", []),

@@ -7,7 +7,7 @@ import logging
 import sys
 from pathlib import Path
 
-from . import build, config, credits
+from . import build, config, credits, epg
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -31,8 +31,18 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--check", action="store_true", help="fail if the README is out of date instead of writing")
     c.add_argument("--readme", type=Path, default=config.ROOT / "README.md")
 
+    g = sub.add_parser("epg", help="build the TV guide from the plan the last build wrote (after the grabber ran)")
+    g.add_argument("--state", type=Path, default=Path("state"))
+    g.add_argument("--out", type=Path, default=Path("site/epg.xml.gz"))
+    g.add_argument("--grabbed", type=Path, help="tonight's iptv-org/epg grabber output (.xml.gz)")
+
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+
+    if args.command == "epg":
+        count = epg.merge(args.state, args.out, args.grabbed)
+        print(f"guide: {count} channels")
+        return 0 if count else 1
 
     if args.command == "credits":
         sources = config.load("credits").get("sources") or {}

@@ -96,3 +96,23 @@ sources:
     license: Public domain or CC BY / CC BY-SA, per item
     attribution: "Nederlands Instituut voor Beeld en Geluid / Open Beelden"
     note: Each item's maker and licence are listed in catalog.json and on its Open Beelden page.
+
+  iptv-epg-org:
+    name: IPTV-EPG.org
+    url: https://iptv-epg.org/
+    provides: TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list
+    license: Free service; listings belong to the broadcasters. Ask us and we'll remove them
+    note: Downloaded once a night, per country.
+
+  i-mjh-nz:
+    name: i.mjh.nz (Matt Huisman)
+    url: https://github.com/matthuisman/i.mjh.nz
+    provides: TV guide listings (XMLTV) for Pluto TV, Samsung TV Plus, Plex and other free streaming services
+    license: Published openly on GitHub; listings belong to the services. Ask us and we'll remove them
+
+  iptv-org-epg:
+    name: iptv-org/epg
+    url: https://github.com/iptv-org/epg
+    provides: The grabber that collects listings for the remaining channels from the guide sites it supports
+    license: Software under the Unlicense; listings belong to the sites they come from
+    note: Each channel is grabbed once a week, 8 days ahead, in a nightly rotation.
