@@ -332,7 +332,7 @@ takes one playlist per type. Movies and series use an open
 <a href="{REPO}/blob/main/FORMAT.md">M3U convention</a>; apps that don't know it show them as groups.</p>
 <h2>TV guide</h2>
 <p><a href="epg.xml.gz">epg.xml.gz</a>: programme listings (XMLTV, gzipped) for the live channels, about a week
-ahead, rebuilt every night. It's named in the header of every playlist with live channels
+ahead, rebuilt every night and refreshed every 4 hours. It's named in the header of every playlist with live channels
 (<code>url-tvg</code>), so most apps load it automatically; otherwise add <code>{PAGES}/epg.xml.gz</code> as
 the EPG source. Its channel ids are the playlists' <code>tvg-id</code>s. Not every channel has listings.</p>
 <p>Listings come from these sources, merged in this order (a channel takes its listings from the first that

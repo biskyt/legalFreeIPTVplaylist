@@ -113,3 +113,20 @@ def test_fast_leaves_only_uncovered_channels_for_the_grabber(tmp_path, monkeypat
     grab = (folder / "channels.xml").read_text()
     assert "Local.fr@SD" in grab and "3sat.de@SD" not in grab
     assert json.loads((tmp_path / "fast.xml.gz.channels.json").read_text()) == ["3sat.de@SD"]
+
+
+def test_refresh_without_grabbing_reuses_the_saved_groups(tmp_path, monkeypatch):
+    """The guide refresh workflow runs `fast` then `merge` with no grabber output: the new ready-made listings plus
+    the groups saved by earlier nightly builds."""
+    folder = tmp_path / "epg"
+    folder.mkdir()
+    slow = [["s", "1", "fr", "Local.fr@SD", "Local"]]
+    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "mjh": {}, "slow": slow, "tonight": [], "night": 0}
+    (folder / "plan.json").write_text(json.dumps(plan))
+    (folder / "group-3.xml.gz").write_bytes(gzip.compress(doc("Local.fr@SD", "Scraped earlier")))
+    monkeypatch.setattr(epg, "_download", lambda url: doc("3sat.de", "Fresh"))
+    fast = tmp_path / "fast.xml.gz"
+    assert epg.fast(tmp_path, fast) == 1
+    assert epg.merge(tmp_path, tmp_path / "site" / "epg.xml.gz", fast) == 2  # no grabbed file
+    text = gzip.decompress((tmp_path / "site" / "epg.xml.gz").read_bytes()).decode()
+    assert ">Fresh<" in text and ">Scraped earlier<" in text

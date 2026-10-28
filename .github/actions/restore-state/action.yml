@@ -1,0 +1,20 @@
+name: Restore state
+description: >
+  Restore state/ (snapshots, stream health, guide groups and a copy of the last published site) from the `state`
+  branch, where the build saves it as one compressed file. No saved state yet is fine (the first run).
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        # Exit code 2 means the branch doesn't exist (first run). Any other failure stops the job rather than
+        # starting empty, which would later overwrite the saved state with a partial one.
+        set +e; git ls-remote --exit-code --heads origin state > /dev/null; found=$?; set -e
+        if [ "$found" = 2 ]; then
+          echo "no saved state yet: this run harvests everything"
+        elif [ "$found" = 0 ]; then
+          git fetch --depth 1 origin state
+          git show FETCH_HEAD:state.tar.gz | tar -xz
+        else
+          echo "couldn't check for saved state (exit $found)"; exit 1
+        fi

@@ -1,0 +1,55 @@
+name: Refresh TV guide
+
+# Pluto TV's and Samsung TV Plus's listings only reach 6 to 15 hours ahead, so a guide built once a night runs out
+# for much of each day. This rebuilds just the guide every few hours: it downloads the ready-made guides again,
+# merges them with the scraped groups saved in state/, and republishes the last build's site with the new
+# epg.xml.gz. It harvests and checks nothing. (GitHub starts scheduled runs when it has capacity, so times vary.)
+on:
+  schedule:
+    - cron: "41 */4 * * *"   # every 4 hours, at an off-peak minute
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# The same group as the nightly build: one deploy at a time, and this run starts after a build that's running,
+# so it always republishes that build's site.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+      - name: Restore state
+        uses: ./.github/actions/restore-state
+      - name: Check there is a site to republish
+        run: |
+          test -f state/site/index.html || { echo "No saved site yet: run the Build playlists workflow first."; exit 1; }
+      - name: Download ready-made guides
+        run: python -m freeplaylist epg fast --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz"
+      - name: Merge TV guide
+        run: |
+          n=$(python -m freeplaylist epg merge --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz" \
+                --out state/site/epg.xml.gz | sed -n 's/^guide: \([0-9]*\) channels$/\1/p')
+          echo "guide covers $n channels"
+          # Don't replace a good guide with a broken one (for example when a source is down).
+          test "${n:-0}" -ge 1000
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: state/site
+      - id: deployment
+        uses: actions/deploy-pages@v5

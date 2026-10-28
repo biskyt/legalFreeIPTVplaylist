@@ -49,7 +49,7 @@ know the convention list films and episodes as channels, grouped as `Movies: …
   `UK` there, as IPTV players expect (`tvg-country` uses the ISO code, `GB`); channels without a country use
   `INT`.
 - **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
-  load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly from ready-made guides,
+  load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly (and refreshed every 4 hours) from ready-made guides,
   [IPTV-EPG.org](https://iptv-epg.org) (one file per country) and [i.mjh.nz](https://github.com/matthuisman/i.mjh.nz)
   (free streaming services; Pluto TV and Samsung TV Plus channels are matched by the service's own channel id),
   plus [iptv-org's grabber](https://github.com/iptv-org/epg) for the channels none of those files cover, which
@@ -184,7 +184,12 @@ other people's servers, so each night does a share of it ([`config/schedule.yaml
   series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday). On that day, its new items and a
   quarter of the rest are checked.
 - **TV guide:** the ready-made guides are fetched every night; the grabber's channels (only those no ready-made
-  guide covers) rotate, one group a night, 8 days ahead each time.
+  guide covers) rotate, one group a night, 8 days ahead each time. Pluto TV's and Samsung TV Plus's listings only
+  reach 6 to 15 hours ahead, so a separate workflow
+  ([`refresh-guide.yml`](.github/workflows/refresh-guide.yml)) rebuilds just the guide every 4 hours: it
+  downloads the ready-made guides again, merges them with the scraped groups saved in `state/`, and republishes
+  the last build's site with the new `epg.xml.gz`. It harvests and checks nothing, and it keeps the previous guide
+  if the new one comes out too small.
 
 Each source's results are kept as a snapshot, and every night's playlists are rebuilt from all snapshots, so a
 source refreshed tonight replaces exactly its own entries. If a harvest fails, the previous snapshot is used.

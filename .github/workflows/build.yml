@@ -39,22 +39,12 @@ jobs:
           cache: pip
       - run: pip install -e .
 
-      # state/ (each source's snapshot, stream health and other caches) lives on the `state` branch as one
-      # compressed file: free, permanent, and replaced each night by a single commit, so the repo doesn't grow.
+      # state/ (each source's snapshot, stream health, guide groups and a copy of the published site) lives on the
+      # `state` branch as one compressed file: free, permanent, and replaced each night by a single commit, so the
+      # repo doesn't grow.
       - name: Restore state
         id: restore
-        run: |
-          # Exit code 2 means the branch doesn't exist (first run). Any other failure stops the job rather than
-          # starting empty, which would later overwrite the saved state with a partial one.
-          set +e; git ls-remote --exit-code --heads origin state > /dev/null; found=$?; set -e
-          if [ "$found" = 2 ]; then
-            echo "no saved state yet: this run harvests everything"
-          elif [ "$found" = 0 ]; then
-            git fetch --depth 1 origin state
-            git show FETCH_HEAD:state.tar.gz | tar -xz
-          else
-            echo "couldn't check for saved state (exit $found)"; exit 1
-          fi
+        uses: ./.github/actions/restore-state
 
       # The build runs in parts, one step each, so the Actions page shows how far it has got (a step's log only
       # appears once it finishes). Each harvest step refreshes one source's snapshot if it's due tonight
@@ -120,6 +110,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A copy of the published site (without the guide, which is rebuilt) lets the guide refresh workflow
+          # republish it with fresh listings. Only a complete site is kept.
+          rm -rf state/site
+          if [ -f site/index.html ]; then cp -r site state/site && rm -f state/site/epg.xml.gz; fi
           mkdir -p "$RUNNER_TEMP/state-branch"
           tar -czf "$RUNNER_TEMP/state-branch/state.tar.gz" state
           cd "$RUNNER_TEMP/state-branch"
