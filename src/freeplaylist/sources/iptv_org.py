@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .. import languages, net
+from .. import logos as logos_
 from ..models import Decision, Entry
 
 API = "https://iptv-org.github.io/api"
@@ -225,10 +226,10 @@ def build(api: dict[str, list], rules: Rules,
     feeds = {(f["channel"], f["id"]): f for f in api["feeds"]}
     main_feeds = {f["channel"]: f for f in api["feeds"] if f.get("is_main")}
     categories = {c["id"]: c["name"] for c in api["categories"]}
-    logos: dict[tuple[str, str | None], str] = {}
+    logos: dict[tuple[str, str | None], list[str]] = {}
     for logo in api["logos"]:
         if logo.get("in_use", True):
-            logos.setdefault((logo["channel"], logo.get("feed")), logo["url"])
+            logos.setdefault((logo["channel"], logo.get("feed")), []).append(logo["url"])
 
     decisions: list[Decision] = []
     grouped: dict[tuple[str, str | None], list[tuple[dict, Verdict]]] = {}
@@ -259,6 +260,8 @@ def build(api: dict[str, list], rules: Rules,
         prefix = ("UK" if countries[0] == "GB" else countries[0]) if countries else "INT"
         group = f"{prefix} | {group}"
         catchup = (rules.allow.get(cid) or {}).get("catchup") or {}
+        # The feed's own logos first, then the channel's; see logos.py for why the others are kept.
+        logo, logo_alternatives = logos_.split(logos.get((cid, feed_id), []) + logos.get((cid, None), []))
         entries.append(Entry(
             id=f"{cid}@{feed_id}" if feed_id else cid,
             title=title,
@@ -266,7 +269,7 @@ def build(api: dict[str, list], rules: Rules,
             group=group,
             kind="live",
             source=source,
-            logo=logos.get((cid, feed_id)) or logos.get((cid, None)),
+            logo=logo,
             user_agent=best.get("user_agent"),
             referrer=best.get("referrer"),
             catchup=catchup.get("mode"),
@@ -282,6 +285,7 @@ def build(api: dict[str, list], rules: Rules,
                 "country": channel.get("country"),
                 "reason": verdict.reason,
                 "labels": best.get("labels", []),
+                **({"logo_alternatives": logo_alternatives} if logo_alternatives else {}),
                 "candidates": [
                     {"url": s["url"], "user_agent": s.get("user_agent"), "referrer": s.get("referrer"),
                      "labels": s.get("labels", [])}

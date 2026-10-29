@@ -20,6 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--api-dir", type=Path, help="use a local copy of the iptv-org API")
     b.add_argument("--no-health", action="store_true", help="skip stream health checks")
     b.add_argument("--no-website-check", action="store_true", help="don't fetch broadcasters' websites")
+    b.add_argument("--no-logo-check", action="store_true", help="don't look for logos that load everywhere")
     b.add_argument("--live-only", action="store_true")
     b.add_argument("--vod-only", action="store_true")
     b.add_argument("--all", action="store_true", help="harvest and check everything, ignoring config/schedule.yaml")
@@ -71,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"unknown sources: {', '.join(sorted(only - set(build.SOURCES)))}")
     opts = build.Options(
         out=args.out, state_dir=args.state, api_dir=args.api_dir, health=not args.no_health,
-        website_check=not args.no_website_check,
+        website_check=not args.no_website_check, logo_check=not args.no_logo_check,
         live=not args.vod_only, vod=not args.live_only, all=args.all, only=only,
         enforce_minimums=not (args.no_minimums or args.live_only or args.vod_only),
         phase=args.phase, source=args.source,

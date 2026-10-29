@@ -76,3 +76,19 @@ def test_rule_fixes(built):
     assert r["https://cdn-euronews.akamaized.net/live/eds/euronews-pl/26382/index.m3u8"] == "official:cdn-named"
     assert r["https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8"] == "official:cdn-named"
     assert r["https://xumo-xumoent-ch825-ku23q.fast.nbcuni.com/live/master.m3u8"] == "fast:xumo-play"
+
+
+def test_imgur_logos_keep_their_alternatives():
+    api = iptv_org.fetch_api(FIXTURES)
+    api["logos"] = [
+        {"channel": "DW.de", "feed": None, "in_use": True, "url": "https://i.imgur.com/dw.png"},
+        {"channel": "DW.de", "feed": None, "in_use": True, "url": "https://upload.example/dw.svg"},
+        {"channel": "Pluto1.us", "feed": None, "in_use": True, "url": "https://images.example/p.png"},
+        {"channel": "Pluto1.us", "feed": None, "in_use": True, "url": "https://i.imgur.com/p.png"},
+    ]
+    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
+    entries = {e.id: e for e in iptv_org.build(api, rules)[0]}
+    assert entries["DW.de@SD"].logo == "https://i.imgur.com/dw.png"
+    assert entries["DW.de@SD"].extra["logo_alternatives"] == ["https://upload.example/dw.svg"]
+    assert entries["Pluto1.us@SD"].logo == "https://images.example/p.png"
+    assert "logo_alternatives" not in entries["Pluto1.us@SD"].extra

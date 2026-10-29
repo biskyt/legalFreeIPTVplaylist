@@ -48,6 +48,10 @@ know the convention list films and episodes as channels, grouped as `Movies: …
   `US | Pluto TV`, so players that only filter on group names can still sort by country. Britain is written
   `UK` there, as IPTV players expect (`tvg-country` uses the ISO code, `GB`); channels without a country use
   `INT`.
+- **Channel logos** are links to images hosted by others, mostly from iptv-org's list, and mostly on Imgur, which
+  has refused the UK since September 2025 (it shows an image saying so instead of the logo). Where iptv-org lists
+  another logo for a channel and it loads, the playlist uses that one; about half the channels have no
+  alternative and stay on Imgur.
 - **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
   load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly (and refreshed every 4 hours) from ready-made guides,
   [IPTV-EPG.org](https://iptv-epg.org) (one file per country) and [i.mjh.nz](https://github.com/matthuisman/i.mjh.nz)

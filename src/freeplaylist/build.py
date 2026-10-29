@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from . import config, credits, enrich, epg, feeds, healthcheck, languages, m3u, net, schedule, snapshots
+from . import config, credits, enrich, epg, feeds, healthcheck, languages, logos, m3u, net, schedule, snapshots
 from .models import Decision, Entry
 from .sources import curated, internet_archive, iptv_org, website_check, wikimedia_commons
 
@@ -41,6 +41,7 @@ class Options:
     api_dir: Path | None = None  # local copy of the iptv-org API (tests / offline)
     health: bool = True
     website_check: bool = True  # fetch broadcasters' websites to confirm streams (see sources/website_check.py)
+    logo_check: bool = True  # look for a logo that loads everywhere where the usual one is on Imgur (see logos.py)
     extra_vod: bool = True  # Wikimedia Commons
     enrich: bool = True  # TMDB/IMDb ids and posters from Wikidata
     live: bool = True
@@ -170,7 +171,16 @@ def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], 
                                               max_sites=check.get("max_sites", 2500))
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
         log.info("website check: %d sites with unverified streams", len(sites))
-    return iptv_org.build(api, rules, site_links)
+    entries, decisions = iptv_org.build(api, rules, site_links)
+    if opts.logo_check:
+        path = opts.state_dir / "logo_check.json"
+        state = config.load_state(path)
+        log.info("logos: %d switched away from Imgur", logos.prefer_open_hosts(entries, state))
+        config.save_state(path, state)
+    else:
+        for e in entries:
+            e.extra.pop("logo_alternatives", None)
+    return entries, decisions
 
 
 def _identify(entries: list[Entry]) -> None:
