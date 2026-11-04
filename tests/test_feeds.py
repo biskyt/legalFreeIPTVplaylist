@@ -3,7 +3,7 @@ from freeplaylist import build, config, feeds, m3u
 
 def test_feed_deduplicates_and_orders(entry):
     entries = [
-        entry(id="b", title="B", group="DE | Pluto TV", countries=["DE"], extra={"platform": "Pluto TV"}),
+        entry(id="b", title="B", group="DE | Sports", countries=["DE"]),
         entry(id="a", title="A", group="DE | News", countries=["DE"], url="https://x/a.m3u8"),
         entry(id="f", title="F", group="FR | News", countries=["FR"], url="https://x/f.m3u8"),
         entry(id="a", title="A again", countries=["DE"], url="https://x/other.m3u8"),

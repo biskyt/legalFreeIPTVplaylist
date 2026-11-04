@@ -1,9 +1,9 @@
-"""Live and FAST channels from the iptv-org database, kept only when the automatic rules find them official.
+"""Live channels from the iptv-org database, classified by the automatic rules.
 
 iptv-org lists every stream it can find, including unofficial restreams, so nothing is accepted on its say-so.
-A stream is accepted when its host belongs to the broadcaster, a known FAST service, or a licensed distribution
-service (see config/live_hosts.yaml), and the channel isn't blocked, NSFW or closed. Manual decisions in
-config/live_allowlist.yaml override the rules.
+Each stream gets a reason (see config/live_hosts.yaml): its host belongs to the broadcaster, the broadcaster's
+website refers to it, and so on, for a channel that isn't blocked, NSFW or closed. Which reasons count as proof
+is decided in config/legal.yaml. Manual decisions in config/live_allowlist.yaml override the rules.
 """
 
 from __future__ import annotations
@@ -78,21 +78,7 @@ def _is_ip(host: str) -> bool:
 
 
 @dataclass
-class Platform:
-    name: str
-    credit: str
-    host: str
-    path_prefix: str | None = None
-    host_prefix: str | None = None  # the first host label must start with this (e.g. "xumo-")
-
-    def matches(self, host: str, path: str) -> bool:
-        return (_within(host, self.host) and (not self.path_prefix or path.startswith(self.path_prefix))
-                and (not self.host_prefix or host.startswith(self.host_prefix)))
-
-
-@dataclass
 class Rules:
-    platforms: list[Platform]
     distribution: list[str]
     broadcaster_hosts: dict[str, str]
     generic_cdns: list[str]
@@ -104,7 +90,6 @@ class Rules:
     @classmethod
     def from_config(cls, hosts: dict, allowlist: dict) -> Rules:
         return cls(
-            platforms=[Platform(**p) for p in hosts.get("platforms") or []],
             distribution=list(hosts.get("distribution") or []),
             broadcaster_hosts=dict(hosts.get("broadcaster_hosts") or {}),
             generic_cdns=list(hosts.get("generic_cdns") or []),
@@ -119,7 +104,6 @@ class Rules:
 class Verdict:
     accepted: bool
     reason: str
-    platform: Platform | None = None
 
 
 def evaluate(stream: dict, channel: dict | None, blocked: dict[str, str], rules: Rules,
@@ -154,9 +138,6 @@ def evaluate(stream: dict, channel: dict | None, blocked: dict[str, str], rules:
         if not allowed.get("hosts") or any(_within(host, h) for h in allowed["hosts"]):
             return Verdict(True, "allowlist")
         return Verdict(False, "allowlist-other-host")
-    for p in rules.platforms:
-        if p.matches(host, parsed.path):
-            return Verdict(True, f"fast:{p.credit}", p)
     if any(_within(host, d) for d in rules.distribution):
         return Verdict(True, "official:distribution")
     if any(_within(host, d) for d in rules.broadcaster_hosts):
@@ -263,11 +244,8 @@ def build(api: dict[str, list], rules: Rules, website_hosts: dict[str, set[str]]
         if feed and not feed.get("is_main"):
             title = f"{title} {feed['name']}"
         countries = feed_countries(feed, channel)
-        if verdict.platform:
-            group, source = verdict.platform.name, verdict.platform.credit
-        else:
-            cats = [categories.get(c, c.title()) for c in channel.get("categories") or [] if c != "general"]
-            group, source = cats[0] if cats else "General", SOURCE
+        cats = [categories.get(c, c.title()) for c in channel.get("categories") or [] if c != "general"]
+        group, source = cats[0] if cats else "General", SOURCE
         # A country code leads the group name ("DE | News"), for players that only filter on group names. Britain
         # is written UK there, as IPTV providers and players expect; tvg-country keeps the ISO code (GB).
         prefix = ("UK" if countries[0] == "GB" else countries[0]) if countries else "INT"
@@ -293,7 +271,6 @@ def build(api: dict[str, list], rules: Rules, website_hosts: dict[str, set[str]]
             countries=countries,
             extra={
                 "broadcaster": channel["name"],
-                "platform": verdict.platform.name if verdict.platform else None,
                 "main_feed": bool(feed and feed.get("is_main")),
                 "country": channel.get("country"),
                 "reason": verdict.reason,

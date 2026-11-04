@@ -39,7 +39,7 @@ jobs:
           cache: pip
       - run: pip install -e .
 
-      # state/ (each source's snapshot, stream health, guide groups and a copy of the published site) lives on the
+      # state/ (each source's snapshot, stream health and guide groups) lives on the
       # `state` branch as one compressed file: free, permanent, and replaced each night by a single commit, so the
       # repo doesn't grow.
       - name: Restore state
@@ -111,10 +111,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # A copy of the published site (without the guide, which is rebuilt) lets the guide refresh workflow
-          # republish it with fresh listings. Only a complete site is kept.
-          rm -rf state/site
-          if [ -f site/index.html ]; then cp -r site state/site && rm -f state/site/epg.xml.gz; fi
           mkdir -p "$RUNNER_TEMP/state-branch"
           tar -czf "$RUNNER_TEMP/state-branch/state.tar.gz" state
           cd "$RUNNER_TEMP/state-branch"

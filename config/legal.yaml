@@ -8,11 +8,8 @@
 # Placeholders: {host} the stream's host, {site} the channel's website. Streams accepted for any other reason are
 # dropped, among them:
 #   official:distribution  a playout vendor's host (amagi, wurl, uplynk...) says nothing about who licensed the
-#                          stream: partner feeds such as "yahoo-plex" or "foxsoul-vizio" sit on the same hosts
+#                          stream: feeds made for particular partners sit on the same hosts as public ones
 #   official:cdn-named     a channel's name in a shared CDN's URL proves nothing about who put it there
-#   fast:*                 free streaming services (Pluto TV, Tubi, Samsung TV Plus, Roku, Plex, Xumo, Rakuten TV):
-#                          their terms don't allow their streams to be played outside their own apps (see
-#                          "excluded" below for the quotes)
 live:
   official:website-domain:
     title: The stream comes from the channel's own website domain
@@ -39,51 +36,15 @@ vod:
     blender: >-
       Published by the Blender Foundation itself under a Creative Commons Attribution licence.
 
-# Why things are left out, shown on credits.html with a count. The key starts the reason in report.json
-# (not-proven:<key>... or takedown:...).
-excluded:
-  "fast:":
-    text: >-
-      Free streaming services (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play, Rakuten TV).
-      Their channels are licensed to them for their own apps, and their terms do not let the streams be played
-      elsewhere: the ones we could read say so (quoted below), and for Samsung TV Plus, The Roku Channel and Rakuten
-      TV we could not read the terms and found no permission.
-    quotes:
-      - service: Tubi
-        url: https://tubitv.com/static/terms
-        quote: "You may not incorporate the Content into, or stream or retransmit the Content via any hardware or software application or make it available via frames or inline links unless expressly permitted by Tubi in writing."
-      - service: Pluto TV
-        url: https://legal.paramount.com/us/en/plutotv/terms-of-use
-        quote: "You may not embed the Video Player into any hardware or software application, even for non-commercial purposes."
-      - service: Plex
-        url: https://www.plex.tv/about/privacy-legal/plex-terms-of-service/
-        quote: "This TOS does not grant you the right to copy, distribute, prepare derivative works, publicly display, or otherwise use any third-party content."
-      - service: Xumo Play
-        url: https://support.xumo.com/hc/en-us/articles/27219815229844-Xumo-Platform-Terms-of-Use
-        quote: "The Xumo Platform is only intended for your non-commercial, private use."
-  "official:distribution": >-
-    Streams on playout vendors' servers (amagi, wurl, uplynk and similar), which carry feeds made for particular
-    partners (a TV maker, a streaming service) as well as public ones, and say nothing about who may use them.
-  "official:cdn-named": >-
-    Streams on a shared content delivery network where only the channel's name appears in the address, which
-    anyone could have set up.
-  "uploader-claim": >-
-    Films and episodes from 1931 or later that the Internet Archive marks public domain or Creative Commons only
-    because the person who uploaded them said so. Many are plainly not free (a 1975 ABC TV movie carries a CC BY
-    label), and the copyright status of 1931-1977 films depends on renewal records nobody here has checked.
-  "takedown:": Removed because its owner asked.
-
 # Owners that have asked for removal. An entry is dropped if any of these match: its channel id (the part before
 # "@"), its exact id, its source, or the registered domain of its website or stream host.
 takedowns:
   - owner: Fox Corporation
-    note: Reported as infringing by Fox during the Amazon Appstore review. Includes Tubi, which Fox owns.
+    note: Reported as infringing by Fox during the Amazon Appstore review.
     channels: [FoxNewsChannel.us, FoxNewsRadio.us, FoxBusinessNetwork.us, FoxWeather.us, FoxSoul.us,
                LiveNOWfromFOX.us, FoxDeportes.us, Fox.us]
     entries: [MNT.us@WFLD]
-    sources: [tubi]
-    domains: [fox.com, foxnews.com, foxbusiness.com, foxweather.com, foxsoul.tv, foxdeportes.com, tubitv.com,
-              tubi.tv, tubi.video, tubi.io]
+    domains: [fox.com, foxnews.com, foxbusiness.com, foxweather.com, foxsoul.tv, foxdeportes.com]
   - owner: Yahoo
     note: Reported as infringing by Yahoo during the Amazon Appstore review.
     channels: [YahooFinance.us]

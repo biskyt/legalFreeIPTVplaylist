@@ -31,7 +31,7 @@ def test_live_languages_and_countries():
     entries, _ = iptv_org.build(iptv_org.fetch_api(FIXTURES), rules)
     by_id = {e.id: e for e in entries}
     assert by_id["Example.uk@SD"].countries == ["GB"]  # iptv-org's UK is ISO GB
-    assert by_id["Pluto1.us@SD"].countries == ["US"]  # s/US-CA counts as the US, once
+    assert by_id["Local1.us@SD"].countries == ["US"]  # s/US-CA counts as the US, once
     assert by_id["DW.de@SD"].countries == ["DE"]  # regions only: falls back to the channel's country
     assert by_id["Euronews.fr@Polish"].languages == ["pol"]
 

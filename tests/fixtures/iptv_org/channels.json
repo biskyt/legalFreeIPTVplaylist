@@ -80,20 +80,20 @@
   "website": "https://blocked.example/"
  },
  {
-  "id": "Pluto1.us",
-  "name": "Pluto Movies",
+  "id": "Local1.us",
+  "name": "Local One",
   "alt_names": [],
   "network": null,
   "owners": [],
   "country": "US",
   "categories": [
-   "movies"
+   "general"
   ],
   "is_nsfw": false,
   "launched": null,
   "closed": null,
   "replaced_by": null,
-  "website": "https://pluto.tv/"
+  "website": "https://www.local1.example/"
  },
  {
   "id": "AlJazeera.qa",
@@ -142,21 +142,5 @@
    "news"
   ],
   "website": "https://www.telesurtv.net/"
- },
- {
-  "alt_names": [],
-  "network": null,
-  "owners": [],
-  "is_nsfw": false,
-  "launched": null,
-  "closed": null,
-  "replaced_by": null,
-  "id": "Xumo1.us",
-  "name": "Xumo Movies",
-  "country": "US",
-  "categories": [
-   "movies"
-  ],
-  "website": "https://play.xumo.com/"
  }
 ]

@@ -34,19 +34,19 @@ def test_acceptances(built):
     r = reasons(built[1])
     assert r["https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8"] == "official:cdn-named"
     assert r["https://live.example.co.uk/hls/main.m3u8"] == "official:website-domain"
-    assert r["https://jmp2.uk/plu-5f12101f0b12f00007e4f00a.m3u8"] == "fast:pluto-tv"
+    assert r["https://hls.local1.example/live/main.m3u8"] == "official:website-domain"
     assert r["https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8"] == "official:broadcaster-host"
 
 
 def test_entries(built):
     by_id = {e.id: e for e in built[0]}
-    assert set(by_id) == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English", "Euronews.fr@Polish",
-                          "Telesur.ve@SD", "Xumo1.us@SD"}
+    assert set(by_id) == {"DW.de@SD", "Example.uk@SD", "Local1.us@SD", "AlJazeera.qa@English", "Euronews.fr@Polish",
+                          "Telesur.ve@SD"}
     dw = by_id["DW.de@SD"]
     assert (dw.title, dw.group, dw.logo, dw.source) == ("DW", "DE | News", "https://i.imgur.com/dw.png", "iptv-org")
-    assert by_id["Pluto1.us@SD"].group == "US | Pluto TV"
+    assert by_id["Local1.us@SD"].group == "US | General"
     assert by_id["Example.uk@SD"].group == "UK | News"
-    assert by_id["Pluto1.us@SD"].source == "pluto-tv"
+    assert by_id["Local1.us@SD"].source == "iptv-org"
     assert by_id["AlJazeera.qa@English"].title == "Al Jazeera English"  # non-main feed named
 
 
@@ -75,7 +75,6 @@ def test_rule_fixes(built):
     # A /live/a/b/123/... path is not an Xtream login unless the id is the file name.
     assert r["https://cdn-euronews.akamaized.net/live/eds/euronews-pl/26382/index.m3u8"] == "official:cdn-named"
     assert r["https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8"] == "official:cdn-named"
-    assert r["https://xumo-xumoent-ch825-ku23q.fast.nbcuni.com/live/master.m3u8"] == "fast:xumo-play"
 
 
 def test_imgur_logos_keep_their_alternatives():
@@ -83,12 +82,12 @@ def test_imgur_logos_keep_their_alternatives():
     api["logos"] = [
         {"channel": "DW.de", "feed": None, "in_use": True, "url": "https://i.imgur.com/dw.png"},
         {"channel": "DW.de", "feed": None, "in_use": True, "url": "https://upload.example/dw.svg"},
-        {"channel": "Pluto1.us", "feed": None, "in_use": True, "url": "https://images.example/p.png"},
-        {"channel": "Pluto1.us", "feed": None, "in_use": True, "url": "https://i.imgur.com/p.png"},
+        {"channel": "Local1.us", "feed": None, "in_use": True, "url": "https://images.example/p.png"},
+        {"channel": "Local1.us", "feed": None, "in_use": True, "url": "https://i.imgur.com/p.png"},
     ]
     rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
     entries = {e.id: e for e in iptv_org.build(api, rules)[0]}
     assert entries["DW.de@SD"].logo == "https://i.imgur.com/dw.png"
     assert entries["DW.de@SD"].extra["logo_alternatives"] == ["https://upload.example/dw.svg"]
-    assert entries["Pluto1.us@SD"].logo == "https://images.example/p.png"
-    assert "logo_alternatives" not in entries["Pluto1.us@SD"].extra
+    assert entries["Local1.us@SD"].logo == "https://images.example/p.png"
+    assert "logo_alternatives" not in entries["Local1.us@SD"].extra

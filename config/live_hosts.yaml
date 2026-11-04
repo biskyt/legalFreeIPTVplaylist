@@ -1,44 +1,5 @@
 # Rules that decide which iptv-org streams count as official, legally free streams.
 # See README "How live channels are vetted". Matching is on the stream URL's host name (and path where noted).
-# Every platform named here needs a matching entry in credits.yaml (a test checks this).
-
-# Free, ad-supported streaming services (known in the industry as FAST). Their channels are grouped under the
-# service's name, e.g. "US | Pluto TV".
-# `host` matches the host name or any parent domain; `path_prefix` / `host_prefix` (optional) must also match.
-platforms:
-  - name: Pluto TV
-    credit: pluto-tv
-    host: jmp2.uk          # third-party redirector to Pluto TV's public streams, used by iptv-org
-    path_prefix: /plu-
-  - name: Samsung TV Plus
-    credit: samsung-tv-plus
-    host: jmp2.uk
-    path_prefix: /stvp-
-  - name: Samsung TV Plus
-    credit: samsung-tv-plus
-    host: samsung.wurl.tv
-  - name: Plex
-    credit: plex
-    host: plex.wurl.tv
-  - name: The Roku Channel
-    credit: roku-channel
-    host: roku.wurl.tv
-  - name: The Roku Channel
-    credit: roku-channel
-    host: delivery.roku.com
-  - name: Tubi
-    credit: tubi
-    host: tubi.video
-  - name: Tubi
-    credit: tubi
-    host: tubi.io
-  - name: Rakuten TV
-    credit: rakuten-tv
-    host: fast.rakuten.tv
-  - name: Xumo Play
-    credit: xumo-play
-    host: fast.nbcuni.com
-    host_prefix: xumo-
 
 # Licensed playout / distribution services that broadcasters pay to deliver their own channels.
 # Streams here are accepted but grouped by the channel's category, like any broadcaster's stream.

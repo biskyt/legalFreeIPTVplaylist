@@ -53,12 +53,11 @@ know the convention list films and episodes as channels, grouped as `Movies: …
   another logo for a channel and it loads, the playlist uses that one; about half the channels have no
   alternative and stay on Imgur.
 - **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
-  load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly (and refreshed every 4 hours) from ready-made guides,
-  [IPTV-EPG.org](https://iptv-epg.org) (one file per country) and [i.mjh.nz](https://github.com/matthuisman/i.mjh.nz)
-  (free streaming services; Pluto TV and Samsung TV Plus channels are matched by the service's own channel id),
-  plus [iptv-org's grabber](https://github.com/iptv-org/epg) for the channels none of those files cover, which
-  grabs one seventh of them each night, 8 days ahead. A channel a ready-made file covers is never scraped. The
-  listings belong to those sources.
+  load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly from the ready-made
+  guides at [IPTV-EPG.org](https://iptv-epg.org) (one file per country), plus
+  [iptv-org's grabber](https://github.com/iptv-org/epg) for the channels those files don't cover, which grabs one
+  seventh of them each night, 8 days ahead. A channel a ready-made file covers is never scraped. The listings
+  belong to those sources.
 - **Movie details:** films carry `tmdb-id` and `imdb-id` when [Wikidata](https://www.wikidata.org) links the
   exact Archive item or Commons file to a film (about 70% of them), and a free poster from Wikimedia Commons
   when Wikidata has one. Episodes carry their show's ids. Players can use the ids to fetch artwork and details
@@ -92,21 +91,9 @@ Also rejected: a stream with no identified channel; a channel on iptv-org's bloc
 or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host; one that
 only plays with a spoofed user agent or referrer; and state media under UK/EU sanctions.
 
-**Left out because nothing proves them:**
-- **Free ad-supported streaming services** (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play,
-  Rakuten TV; "FAST", *Free Ad-Supported Streaming Television*). They are free to watch in their own apps, but
-  their channels are licensed to them for those apps, and their terms don't allow playing the streams elsewhere.
-  Tubi's say "You may not incorporate the Content into, or stream or retransmit the Content via any hardware or
-  software application or make it available via frames or inline links unless expressly permitted by Tubi in
-  writing", and Pluto TV's say "You may not embed the Video Player into any hardware or software application,
-  even for non-commercial purposes" (quotes from all the terms we could read are on
-  [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html); we could not read Samsung TV
-  Plus's, The Roku Channel's or Rakuten TV's and found no permission). They were included in earlier versions
-  and have been removed.
-- **Playout vendors' hosts** (Amagi, Wurl, Uplynk and similar). They carry feeds made for particular partners as
-  well as public ones, and a host name says nothing about who may use a feed.
-- **Streams where only a name in a shared CDN's address matches the channel**, which anyone could have set up.
-- **Takedowns:** anything an owner has asked us to remove, such as Fox's and Yahoo's channels.
+**Left out because nothing proves them:** streams on playout vendors' servers (a host name says nothing about
+who may use a feed), streams where only a name in a shared CDN's address matches the channel, and anything an
+owner has asked us to remove.
 
 Every stream is then **health-checked**. For HLS, both the playlist and its first variant must load. Dead
 streams are dropped; a channel with several streams falls back to the next working one.
@@ -153,7 +140,6 @@ they're free in their country of origin too.)
 | [Blender Studio (Blender Foundation) open movies](https://studio.blender.org/films/) | Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel, Cosmos Laundromat, Spring, Sprite Fright, Wing It!, Caminandes | Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film) | Credit: © Blender Foundation \| studio.blender.org. Streamed from the Internet Archive's copies. |
 | [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |
 | [IPTV-EPG.org](https://iptv-epg.org/) | TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list | Free service; listings belong to the broadcasters. Ask us and we'll remove them | Downloaded once a night, per country. |
-| [i.mjh.nz (Matt Huisman)](https://github.com/matthuisman/i.mjh.nz) | TV guide listings (XMLTV) for Pluto TV, Samsung TV Plus, Plex and other free streaming services (Pluto TV and Samsung TV Plus channels matched by the service's own channel id) | Published openly on GitHub; listings belong to the services. Ask us and we'll remove them |  |
 | [iptv-org/epg](https://github.com/iptv-org/epg) | The grabber that collects listings for the remaining channels from the guide sites it supports | Software under the Unlicense; listings belong to the sites they come from | Each channel is grabbed once a week, 8 days ahead, in a nightly rotation. |
 
 Every live channel belongs to its broadcaster. The full list of broadcasters, with links, is published with each build in [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html).
@@ -194,12 +180,7 @@ other people's servers, so each night does a share of it ([`config/schedule.yaml
   series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday). On that day, its new items and a
   quarter of the rest are checked.
 - **TV guide:** the ready-made guides are fetched every night; the grabber's channels (only those no ready-made
-  guide covers) rotate, one group a night, 8 days ahead each time. Pluto TV's and Samsung TV Plus's listings only
-  reach 6 to 15 hours ahead, so a separate workflow
-  ([`refresh-guide.yml`](.github/workflows/refresh-guide.yml)) rebuilds just the guide every 4 hours: it
-  downloads the ready-made guides again, merges them with the scraped groups saved in `state/`, and republishes
-  the last build's site with the new `epg.xml.gz`. It harvests and checks nothing, and it keeps the previous guide
-  if the new one comes out too small.
+  guide covers) rotate, one group a night, 8 days ahead each time.
 
 Each source's results are kept as a snapshot, and every night's playlists are rebuilt from all snapshots, so a
 source refreshed tonight replaces exactly its own entries. If a harvest fails, the previous snapshot is used.

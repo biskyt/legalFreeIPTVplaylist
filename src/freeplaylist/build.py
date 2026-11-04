@@ -342,7 +342,7 @@ table{{border-collapse:collapse}}td,th{{border-bottom:1px solid #ccc;padding:.3r
 playlists. Rebuilt daily. This site only links to streams; it hosts no video.</p>
 <p><strong>Why each entry is legal:</strong> an entry is published only when we can show why it may be.
 <a href="credits.html">credits.html</a> gives the reason for every channel and film, with links to the
-evidence, and lists what is left out and why.</p>
+evidence.</p>
 <table><thead><tr><th>Playlist</th><th>Contents</th><th>Entries</th></tr></thead><tbody>{rows(main)}</tbody></table>
 <p>Add <code>{PAGES}/playlist.m3u</code> (everything) to your IPTV app, or the separate feeds if your app
 takes one playlist per type. Movies and series use an open
@@ -379,7 +379,7 @@ def write_site(out: Path, built: dict[str, feeds.Feed], decisions: list[Decision
     (out / "report.json").write_text(json.dumps(report(decisions, built), indent=1, ensure_ascii=False),
                                      encoding="utf-8")
     everything = [e for n in ("live", "movies", "series") for e in built[n].entries]
-    (out / "credits.html").write_text(credits.credits_html(everything, sources, policy or {}, decisions),
+    (out / "credits.html").write_text(credits.credits_html(everything, sources, policy or {}),
                                       encoding="utf-8")
     (out / "index.html").write_text(index_html(built, sources), encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")

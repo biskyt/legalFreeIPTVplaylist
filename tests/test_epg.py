@@ -23,17 +23,17 @@ def test_plan_routes_channels_to_fast_and_slow_sources(entry):
     entries = [
         entry(id="3sat.de@SD", title="3sat", extra={"main_feed": True}),
         entry(id="3sat.de@HD", title="3sat HD", extra={"main_feed": False}),
-        entry(id="Pluto1.us@SD", title="Pluto 1"),
+        entry(id="Svc1.us@SD", title="Svc 1"),
         entry(id="Local.fr@SD", title="Local & Co"),
     ]
     guides = [
-        {"channel": "Pluto1.us", "feed": None, "site": "i.mjh.nz", "site_id": "PlutoTV/us#abc", "lang": "en"},
+        # i.mjh.nz is a ready-made guide, not a site the grabber can scrape: never planned for scraping
+        {"channel": "Svc1.us", "feed": None, "site": "i.mjh.nz", "site_id": "Other/us#abc", "lang": "en"},
         {"channel": "Local.fr", "feed": "SD", "site": "tv.example", "site_id": "42", "lang": "fr"},
     ]
     plan = epg.plan(entries, guides, schedule.Tonight({"live_groups": 1}, date(2026, 10, 19)))
     assert plan["iptv_epg"]["de"] == {"3sat.de": ["3sat.de@SD"]}  # main feed only
-    assert plan["mjh"]["https://raw.githubusercontent.com/matthuisman/i.mjh.nz/master/PlutoTV/us.xml"] == {
-        "abc": ["Pluto1.us@SD"]}
+    assert "mjh" not in plan
     assert plan["slow"] == plan["tonight"] == [["tv.example", "42", "fr", "Local.fr@SD", "Local & Co"]]
     xml = epg.channels_xml(plan["slow"])
     assert 'xmltv_id="Local.fr@SD">Local &amp; Co</channel>' in xml
@@ -61,7 +61,7 @@ def test_merge_saves_tonights_group_and_combines(tmp_path, monkeypatch):
     folder = tmp_path / "epg"
     folder.mkdir()
     slow = [["s", "1", "fr", "Old.fr@SD", "Old"], ["s", "2", "fr", "Local.fr@SD", "Local"]]
-    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "mjh": {}, "slow": slow, "tonight": [], "night": 2}
+    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "slow": slow, "tonight": [], "night": 2}
     (folder / "plan.json").write_text(json.dumps(plan))
     (folder / "group-5.xml.gz").write_bytes(gzip.compress(doc("Old.fr@SD", "Earlier night")))
     grabbed = tmp_path / "grabbed.xml.gz"
@@ -91,21 +91,11 @@ def test_broken_source_leaves_nothing_behind(tmp_path):
     assert ">Whole<" in text and ">Partial<" not in text
 
 
-def test_service_channels_match_by_the_id_in_their_stream_url(entry):
-    entries = [entry(id="PlutoMovies.us@SD", title="Pluto Movies", url="https://jmp2.uk/plu-62ba60f059624e000781c436.m3u8"),
-               entry(id="Sam.us@SD", title="Sam", url="https://jmp2.uk/stvp-USBC4700001GR")]
-    guides = [{"channel": "PlutoMovies.us", "feed": None, "site": "tv.example", "site_id": "9", "lang": "en"}]
-    plan = epg.plan(entries, guides, schedule.Tonight({"live_groups": 1}, date(2026, 10, 19)))
-    assert plan["mjh"][epg.MJH.format("PlutoTV/all") + ".gz"] == {"62ba60f059624e000781c436": ["PlutoMovies.us@SD"]}
-    assert plan["mjh"][epg.MJH.format("SamsungTVPlus/all") + ".gz"] == {"USBC4700001GR": ["Sam.us@SD"]}
-    assert plan["slow"] == []  # never scraped: the ready-made file has it
-
-
 def test_fast_leaves_only_uncovered_channels_for_the_grabber(tmp_path, monkeypatch):
     folder = tmp_path / "epg"
     folder.mkdir()
     tonight = [["s", "1", "de", "3sat.de@SD", "3sat"], ["s", "2", "fr", "Local.fr@SD", "Local"]]
-    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "mjh": {}, "slow": tonight, "tonight": tonight,
+    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "slow": tonight, "tonight": tonight,
             "night": 0}
     (folder / "plan.json").write_text(json.dumps(plan))
     monkeypatch.setattr(epg, "_download", lambda url: doc("3sat.de", "Fast"))
@@ -116,12 +106,12 @@ def test_fast_leaves_only_uncovered_channels_for_the_grabber(tmp_path, monkeypat
 
 
 def test_refresh_without_grabbing_reuses_the_saved_groups(tmp_path, monkeypatch):
-    """The guide refresh workflow runs `fast` then `merge` with no grabber output: the new ready-made listings plus
+    """`fast` then `merge` with no grabber output: the new ready-made listings plus
     the groups saved by earlier nightly builds."""
     folder = tmp_path / "epg"
     folder.mkdir()
     slow = [["s", "1", "fr", "Local.fr@SD", "Local"]]
-    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "mjh": {}, "slow": slow, "tonight": [], "night": 0}
+    plan = {"iptv_epg": {"de": {"3sat.de": ["3sat.de@SD"]}}, "slow": slow, "tonight": [], "night": 0}
     (folder / "plan.json").write_text(json.dumps(plan))
     (folder / "group-3.xml.gz").write_bytes(gzip.compress(doc("Local.fr@SD", "Scraped earlier")))
     monkeypatch.setattr(epg, "_download", lambda url: doc("3sat.de", "Fresh"))

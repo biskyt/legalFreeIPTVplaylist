@@ -9,11 +9,11 @@
   "sources": []
  },
  {
-  "channel": "Pluto1.us",
+  "channel": "Local1.us",
   "feed": null,
-  "site": "i.mjh.nz",
-  "site_id": "PlutoTV/us#p1",
-  "site_name": "P1 & Co",
+  "site": "guide.example",
+  "site_id": "local1",
+  "site_name": "Local One",
   "lang": "en",
   "sources": []
  },

@@ -80,10 +80,10 @@
   "referrer": null
  },
  {
-  "channel": "Pluto1.us",
+  "channel": "Local1.us",
   "feed": "SD",
-  "title": "Pluto1.us",
-  "url": "https://jmp2.uk/plu-5f12101f0b12f00007e4f00a.m3u8",
+  "title": "Local1.us",
+  "url": "https://hls.local1.example/live/main.m3u8",
   "quality": "720p",
   "labels": [],
   "user_agent": null,
@@ -134,16 +134,6 @@
   "feed": "SD",
   "title": "teleSUR",
   "url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8",
-  "quality": "720p",
-  "labels": [],
-  "user_agent": null,
-  "referrer": null
- },
- {
-  "channel": "Xumo1.us",
-  "feed": "SD",
-  "title": "Xumo",
-  "url": "https://xumo-xumoent-ch825-ku23q.fast.nbcuni.com/live/master.m3u8",
   "quality": "720p",
   "labels": [],
   "user_agent": null,

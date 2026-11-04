@@ -42,8 +42,8 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
 
     _, live = m3u.parse((out / "live.m3u").read_text())
     # Only streams with a provable basis: the channel's own website domain, or a broadcaster-run host. The
-    # fixture's free streaming services and CDN-name matches (DW, Euronews, teleSUR) are left out.
-    assert {e["tvg-id"] for e in live} == {"Example.uk@SD", "AlJazeera.qa@English"}
+    # fixture's CDN-name matches (DW, Euronews, teleSUR) are left out.
+    assert {e["tvg-id"] for e in live} == {"Example.uk@SD", "Local1.us@SD", "AlJazeera.qa@English"}
     _, movies = m3u.parse((out / "movies.m3u").read_text())
     ids = {e["tvg-id"] for e in movies}
     assert "ia.Detour" in ids and "blender.BigBuckBunny_124" in ids
@@ -66,7 +66,7 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     assert example["legal"]["basis"] == "official:website-domain" and example["legal"]["links"]
     credits_page = (out / "credits.html").read_text()
     assert "Example" in credits_page and "ia.Detour" not in credits_page and "Published in 1925" in credits_page
-    assert "who uploaded them" in credits_page and "(1 left out)" in credits_page  # what's left out, and why
+    assert "left out" not in credits_page and "uploader" not in credits_page  # only what's included is listed
     reasons = {d for d in json.loads((out / "report.json").read_text())["decisions"]["legal"]}
     assert "rejected:not-proven:uploader-claim" in reasons
     index = (out / "index.html").read_text()

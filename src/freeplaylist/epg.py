@@ -1,10 +1,7 @@
 """The TV guide (XMLTV) for the live channels, from fast sources nightly and slow ones in rotation.
 
-* Fast: ready-made XMLTV files. iptv-epg.org publishes one per country (7 days, iptv-org channel ids) and
-  i.mjh.nz one per service and region (Pluto TV, Samsung TV Plus, Plex...). Pluto TV and Samsung TV Plus
-  channels are matched by the service's own channel id, which is in the stream URL, against i.mjh.nz's
-  all-regions file, so they get a guide even where iptv-org doesn't link one. One download covers hundreds of
-  channels, so these are fetched every night.
+* Fast: ready-made XMLTV files. iptv-epg.org publishes one per country (7 days, iptv-org channel ids). One
+  download covers hundreds of channels, so these are fetched every night.
 * Slow: channels none of those files has listings for, but which have a guide source in iptv-org's
   guides.json, are scraped channel by channel by iptv-org's grabber (https://github.com/iptv-org/epg). They're
   split into the same 7 nightly groups as the stream checks; each night the workflow grabs one group for 8 days
@@ -41,12 +38,6 @@ from .progress import Progress
 
 log = logging.getLogger("freeplaylist")
 IPTV_EPG = "https://iptv-epg.org/files/epg-{}.xml.gz"
-MJH = "https://raw.githubusercontent.com/matthuisman/i.mjh.nz/master/{}.xml"
-# Services whose stream URLs carry the channel id i.mjh.nz uses: (pattern, i.mjh.nz file with every region).
-SERVICE_IDS = (
-    (re.compile(r"(?:jmp2\.uk/plu-|pluto\.tv/.*/channel/)([0-9a-f]{24})"), MJH.format("PlutoTV/all") + ".gz"),
-    (re.compile(r"jmp2\.uk/stvp-([A-Z0-9]+)"), MJH.format("SamsungTVPlus/all") + ".gz"),
-)
 _REFRESH = re.compile(rb"""http-equiv=["']refresh["'][^>]*url=['"]?([^'">]+)""", re.I)
 
 
@@ -56,7 +47,7 @@ def _channel_country(channel_id: str) -> str:
 
 
 def plan(entries: list[Entry], guides: list[dict], tonight: schedule.Tonight) -> dict:
-    """Which guide covers each live channel: {"iptv_epg": {cc: {their id: [our ids]}}, "mjh": {url: {...}},
+    """Which guide covers each live channel: {"iptv_epg": {cc: {their id: [our ids]}},
     "slow": [[site, site_id, lang, our id, name], ...], "tonight": [...the slow ones in tonight's group]}.
     Every channel is offered to the ready-made files; "slow" is only where to scrape it if none has it."""
     live = [e for e in entries if e.kind == "live"]
@@ -65,27 +56,19 @@ def plan(entries: list[Entry], guides: list[dict], tonight: schedule.Tonight) ->
         by_channel[e.id.partition("@")[0]].append(e)
     guide_for: dict[tuple[str, str | None], dict] = {}
     for g in guides:
-        if g.get("channel") and g.get("site") and g.get("site_id"):
+        # iptv-org also lists i.mjh.nz guides, which are ready-made files, not sites the grabber can scrape.
+        if g.get("channel") and g.get("site") and g.get("site_id") and g["site"] != "i.mjh.nz":
             guide_for.setdefault((g["channel"], g.get("feed")), g)
             guide_for.setdefault((g["channel"], None), g)
 
-    out = {"iptv_epg": defaultdict(dict), "mjh": defaultdict(dict), "slow": []}
+    out = {"iptv_epg": defaultdict(dict), "slow": []}
     for channel, es in by_channel.items():
         # iptv-epg.org lists a channel once; give its listings to the channel's main feed (or its only one).
         main = [e for e in es if e.extra.get("main_feed")] or es[:1]
         out["iptv_epg"][_channel_country(channel)].setdefault(channel, []).extend(e.id for e in main)
         for e in es:
-            service = next(((url, m.group(1)) for pattern, url in SERVICE_IDS if (m := pattern.search(e.url))), None)
-            if service:
-                out["mjh"][service[0]].setdefault(service[1], []).append(e.id)
-                continue
             g = guide_for.get((channel, e.id.partition("@")[2] or None)) or guide_for.get((channel, None))
-            if not g:
-                continue
-            if g["site"] == "i.mjh.nz":
-                path, _, their_id = g["site_id"].partition("#")
-                out["mjh"][MJH.format(path)].setdefault(their_id, []).append(e.id)
-            else:
+            if g:
                 out["slow"].append([g["site"], g["site_id"], g.get("lang") or "en", e.id, e.title])
     out["tonight"] = [s for s in out["slow"] if tonight.is_turn(s[3])]
     out["night"] = tonight.night
@@ -188,8 +171,7 @@ def _covered_file(fast_file: Path) -> Path:
 
 def fast_sources(the_plan: dict) -> list[tuple[str, str, dict]]:
     """(credit, url, id map) for each ready-made file, in order of preference."""
-    out = [("iptv-epg.org", IPTV_EPG.format(cc), ids) for cc, ids in sorted(the_plan["iptv_epg"].items())]
-    return out + [("i.mjh.nz", url, ids) for url, ids in sorted(the_plan["mjh"].items())]
+    return [("iptv-epg.org", IPTV_EPG.format(cc), ids) for cc, ids in sorted(the_plan["iptv_epg"].items())]
 
 
 def fast(state_dir: Path, out: Path) -> int:

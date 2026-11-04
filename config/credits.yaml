@@ -7,8 +7,6 @@
 #   attribution:  the credit line they ask for (optional)
 #   note:         anything a user should know (optional)
 #   proof:        why entries from this source are kept (shown on credits.html; the rules are in legal.yaml)
-#   excluded:     set on sources this project no longer includes: they stay here so their rules still have a
-#                 credit record, but they're left out of the README table and credits.html
 
 sources:
   iptv-org:
@@ -23,8 +21,6 @@ sources:
     proof: >-
       A live stream is kept only if it is served from the channel's own website domain, the channel's own website
       refers to the stream's host, or the host is run by the broadcaster itself.
-      Free streaming services, playout vendors' partner feeds and streams matched only by a name in a CDN address
-      are left out.
 
   internet-archive:
     name: Internet Archive
@@ -36,8 +32,7 @@ sources:
       Public domain in the US by age: works published in 1930 or earlier entered it on 1 January 2026
     note: Files are streamed directly from archive.org. Consider donating at https://archive.org/donate
     proof: >-
-      Only films the Internet Archive records as published before 1931 are kept. Its public-domain marks and
-      Creative Commons labels are set by whoever uploaded an item, so they are not relied on.
+      Only films the Internet Archive records as published before 1931, which are in the US public domain by age.
 
   blender:
     name: Blender Studio (Blender Foundation) open movies
@@ -47,61 +42,6 @@ sources:
     attribution: "© Blender Foundation | studio.blender.org"
     note: Streamed from the Internet Archive's copies.
     proof: Published by the Blender Foundation itself, which is the copyright holder, under CC BY.
-
-  pluto-tv:
-    name: Pluto TV
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://pluto.tv/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners
-    note: >-
-      Linked through jmp2.uk, a third-party redirector used by iptv-org, not an official Pluto TV service.
-      Availability varies by country.
-
-  samsung-tv-plus:
-    name: Samsung TV Plus
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://www.samsungtvplus.com/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners
-    note: Some streams are linked through jmp2.uk, a third-party redirector. Availability varies by country.
-
-  plex:
-    name: Plex
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://www.plex.tv/live-tv/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from Plex; content and trademarks belong to Plex and its partners
-
-  roku-channel:
-    name: The Roku Channel
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://therokuchannel.roku.com/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners
-
-  tubi:
-    name: Tubi
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://tubitv.com/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from Tubi; content and trademarks belong to Tubi and its partners
-
-  rakuten-tv:
-    name: Rakuten TV
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://www.rakuten.tv/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners
-    note: Availability varies by country.
-
-  xumo-play:
-    name: Xumo Play
-    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
-    url: https://play.xumo.com/
-    provides: Free, ad-supported streaming channels
-    license: Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners
-    note: Availability varies by country.
 
   wikimedia-commons:
     name: Wikimedia Commons
@@ -120,14 +60,6 @@ sources:
     provides: TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list
     license: Free service; listings belong to the broadcasters. Ask us and we'll remove them
     note: Downloaded once a night, per country.
-
-  i-mjh-nz:
-    guide: true
-    name: i.mjh.nz (Matt Huisman)
-    url: https://github.com/matthuisman/i.mjh.nz
-    provides: TV guide listings (XMLTV) for Pluto TV, Samsung TV Plus, Plex and other free streaming services
-      (Pluto TV and Samsung TV Plus channels matched by the service's own channel id)
-    license: Published openly on GitHub; listings belong to the services. Ask us and we'll remove them
 
   iptv-org-epg:
     guide: true

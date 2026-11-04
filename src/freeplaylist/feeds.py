@@ -27,9 +27,8 @@ class Feed:
 def _sort_key(e: Entry):
     if e.kind == "series":
         return (e.series_name or "").lower(), e.season or 0, e.episode or 0, e.title.lower()
-    # By country; within a country, broadcasters' own channels before free streaming services (Pluto TV etc.);
-    # then by group and name.
-    return (e.countries or [""])[0], bool(e.extra.get("platform")), e.group.lower(), e.title.lower()
+    # By country, then by group and name.
+    return (e.countries or [""])[0], e.group.lower(), e.title.lower()
 
 
 def build(name: str, cfg: dict, entries: list[Entry]) -> tuple[Feed, list[Decision]]:
