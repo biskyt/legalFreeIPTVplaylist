@@ -14,4 +14,7 @@ allow:
   #   reason: Al Jazeera publishes these streams on its own site
   []
 
-deny: []
+deny:
+  # A channel of a free streaming service, which got in because the service's own domain is also the channel's
+  # website; its streams belong to the service's apps.
+  - TopMoviesPolska.pl

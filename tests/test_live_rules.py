@@ -91,3 +91,18 @@ def test_imgur_logos_keep_their_alternatives():
     assert entries["DW.de@SD"].extra["logo_alternatives"] == ["https://upload.example/dw.svg"]
     assert entries["Local1.us@SD"].logo == "https://images.example/p.png"
     assert "logo_alternatives" not in entries["Local1.us@SD"].extra
+
+
+def test_a_denied_channel_is_never_included():
+    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
+    assert "TopMoviesPolska.pl" in rules.deny
+    api = iptv_org.fetch_api(FIXTURES)
+    api["channels"] = [*api["channels"], {"id": "TopMoviesPolska.pl", "name": "Top Movies Polska", "country": "PL",
+                                          "categories": [], "is_nsfw": False, "closed": None, "replaced_by": None,
+                                          "website": "https://svc.example/"}]
+    api["streams"] = [*api["streams"], {"channel": "TopMoviesPolska.pl", "feed": "SD", "title": "T",
+                                        "url": "https://x.svc.example/live.m3u8", "quality": "720p", "labels": [],
+                                        "user_agent": None, "referrer": None}]
+    entries, decisions = iptv_org.build(api, rules)
+    assert "TopMoviesPolska.pl@SD" not in {e.id for e in entries}
+    assert any(d.reason == "denied-channel" and "TopMoviesPolska" in d.item for d in decisions)
