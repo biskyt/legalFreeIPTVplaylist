@@ -68,18 +68,10 @@ def site_hosts(url: str, fetch=net.probe) -> tuple[set[str], bool]:
         return set(), False
 
 
-RENDER_TTL = 30 * 86400  # how long a browser reading of a site is kept
-
-
 def find_hosts(sites: set[str], state: dict, tonight: schedule.Tonight, *, everything: bool = False,
-               max_sites: int = 2500, workers: int = 16, fetch=net.probe, wanted: dict[str, set[str]] | None = None,
-               render=None, max_rendered: int = 120) -> dict[str, set[str]]:
+               max_sites: int = 2500, workers: int = 16, fetch=net.probe) -> dict[str, set[str]]:
     """{website: hosts it mentions} for every site. Sites are split into the schedule's nightly groups by name and
-    one group is re-fetched each night, so each site is checked about weekly; new sites are fetched at once.
-
-    Where the plain fetch didn't find any host we're trying to prove for a site (`wanted`: its channels' stream
-    hosts) and `render` is given (browser.render), up to `max_rendered` such sites a night are read in a browser,
-    for pages that build their player with JavaScript. That also records which wanted hosts the page requests."""
+    one group is re-fetched each night, so each site is checked about weekly; new sites are fetched at once."""
     now = time.time()
 
     def stale(site: str) -> bool:
@@ -96,34 +88,6 @@ def find_hosts(sites: set[str], state: dict, tonight: schedule.Tonight, *, every
     todo = net.round_robin(todo, key=net.host_of)
     with Progress("website check", len(todo)) as progress, ThreadPoolExecutor(workers) as pool:
         for site, (hosts, ok) in zip(todo, pool.map(lambda s: site_hosts(s, fetch), todo), strict=True):
-            state[site] = {**{k: v for k, v in state.get(site, {}).items() if k in ("rendered", "requested")},
-                           "t": now, "ok": ok, "hosts": sorted(hosts)}
+            state[site] = {"t": now, "ok": ok, "hosts": sorted(hosts)}
             progress.done()
-    if render and wanted:
-        _render_missing(sites, state, wanted, render, now, max_rendered)
     return {s: set(state[s]["hosts"]) for s in sites if s in state}
-
-
-def page_hosts(sites, state: dict) -> dict[str, set[str]]:
-    """{website: hosts its page requested when a browser loaded it}, from the cache."""
-    return {s: set(state[s]["requested"]) for s in sites if state.get(s, {}).get("requested")}
-
-
-def _render_missing(sites, state: dict, wanted: dict[str, set[str]], render, now: float, limit: int) -> None:
-    def needs(site: str) -> bool:
-        rec = state.get(site)
-        if rec is None or now - rec.get("rendered", 0) < RENDER_TTL or not wanted.get(site):
-            return False
-        return not (wanted[site] & (set(rec["hosts"]) | set(rec.get("requested", []))))
-
-    todo = sorted((s for s in sites if needs(s)), key=lambda s: state[s].get("rendered", 0))[:limit]
-    if not todo:
-        return
-    todo = net.round_robin(todo, key=net.host_of)
-    results = render(todo, {s: wanted[s] for s in todo})
-    for site, (mentioned, requested, ok) in results.items():
-        rec = state[site]
-        rec["hosts"] = sorted(set(rec["hosts"]) | mentioned)
-        rec["requested"] = sorted(requested)
-        rec["rendered"] = now
-        rec["ok"] = rec["ok"] or ok

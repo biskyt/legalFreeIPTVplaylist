@@ -22,7 +22,7 @@ sources:
       every channel and why it is included.
     proof: >-
       A live stream is kept only if it is served from the channel's own website domain, the channel's own website
-      refers to the stream's host (or its web page loads the stream), or the host is run by the broadcaster itself.
+      refers to the stream's host, or the host is run by the broadcaster itself.
       Free streaming services, playout vendors' partner feeds and streams matched only by a name in a CDN address
       are left out.
 
@@ -50,7 +50,7 @@ sources:
 
   pluto-tv:
     name: Pluto TV
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://pluto.tv/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners
@@ -60,7 +60,7 @@ sources:
 
   samsung-tv-plus:
     name: Samsung TV Plus
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://www.samsungtvplus.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners
@@ -68,28 +68,28 @@ sources:
 
   plex:
     name: Plex
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://www.plex.tv/live-tv/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Plex; content and trademarks belong to Plex and its partners
 
   roku-channel:
     name: The Roku Channel
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://therokuchannel.roku.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners
 
   tubi:
     name: Tubi
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://tubitv.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Tubi; content and trademarks belong to Tubi and its partners
 
   rakuten-tv:
     name: Rakuten TV
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://www.rakuten.tv/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners
@@ -97,7 +97,7 @@ sources:
 
   xumo-play:
     name: Xumo Play
-    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
+    excluded: "Not included: its terms do not allow its streams to be played outside its own apps (see credits.html)."
     url: https://play.xumo.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners

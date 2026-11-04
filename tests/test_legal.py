@@ -65,7 +65,7 @@ def test_film_evidence_links_to_the_item_licence_and_imdb(entry):
 
 def test_only_accepted_reasons_count_as_proof():
     assert legal.accepted_live_reasons(POLICY) == {"official:website-domain", "official:website-link",
-                                                   "official:website-page", "official:broadcaster-host"}
+                                                   "official:broadcaster-host"}
 
 
 @pytest.fixture(scope="module")
@@ -118,4 +118,5 @@ def test_credits_page_shows_evidence_exclusions_and_sources(entry):
     assert "X TV" in page and "https://x.example/" in page and "Old Film (1925)" in page
     assert "Old Film by A. Maker" in page and "Kept only with proof." in page
     assert "(2 left out)" in page and "(1 left out)" in page  # the Internet Archive claims and the FAST streams
+    assert "stream or retransmit the Content via any hardware or software application" in page  # Tubi's terms
     assert "Pluto TV" not in page.split("<h2>Sources</h2>")[1].split("<h2 id=\"live\">")[0]  # excluded: not a source

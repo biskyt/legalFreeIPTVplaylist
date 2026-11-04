@@ -11,7 +11,8 @@
 #                          stream: partner feeds such as "yahoo-plex" or "foxsoul-vizio" sit on the same hosts
 #   official:cdn-named     a channel's name in a shared CDN's URL proves nothing about who put it there
 #   fast:*                 free streaming services (Pluto TV, Tubi, Samsung TV Plus, Roku, Plex, Xumo, Rakuten TV):
-#                          nothing shows their terms allow their streams to be played outside their own apps
+#                          their terms don't allow their streams to be played outside their own apps (see
+#                          "excluded" below for the quotes)
 live:
   official:website-domain:
     title: The stream comes from the channel's own website domain
@@ -19,9 +20,6 @@ live:
   official:website-link:
     title: The channel's own website points to the stream
     text: "The channel's own website ({site}) refers to the stream's host ({host}): the owner publishes it."
-  official:website-page:
-    title: The channel's own web page loads the stream
-    text: "The channel's own web page ({site}) requests the stream from {host} when it plays: the owner publishes it."
   official:broadcaster-host:
     title: The stream comes from a server run by the broadcaster
     text: "{host} is a delivery domain run by the broadcaster itself."
@@ -44,10 +42,25 @@ vod:
 # Why things are left out, shown on credits.html with a count. The key starts the reason in report.json
 # (not-proven:<key>... or takedown:...).
 excluded:
-  "fast:": >-
-    Free streaming services (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play, Rakuten TV). Their
-    channels are licensed to them for their own apps, and nothing shows their terms allow the streams to be played
-    elsewhere.
+  "fast:":
+    text: >-
+      Free streaming services (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play, Rakuten TV).
+      Their channels are licensed to them for their own apps, and their terms do not let the streams be played
+      elsewhere: the ones we could read say so (quoted below), and for Samsung TV Plus, The Roku Channel and Rakuten
+      TV we could not read the terms and found no permission.
+    quotes:
+      - service: Tubi
+        url: https://tubitv.com/static/terms
+        quote: "You may not incorporate the Content into, or stream or retransmit the Content via any hardware or software application or make it available via frames or inline links unless expressly permitted by Tubi in writing."
+      - service: Pluto TV
+        url: https://legal.paramount.com/us/en/plutotv/terms-of-use
+        quote: "You may not embed the Video Player into any hardware or software application, even for non-commercial purposes."
+      - service: Plex
+        url: https://www.plex.tv/about/privacy-legal/plex-terms-of-service/
+        quote: "This TOS does not grant you the right to copy, distribute, prepare derivative works, publicly display, or otherwise use any third-party content."
+      - service: Xumo Play
+        url: https://support.xumo.com/hc/en-us/articles/27219815229844-Xumo-Platform-Terms-of-Use
+        quote: "The Xumo Platform is only intended for your non-commercial, private use."
   "official:distribution": >-
     Streams on playout vendors' servers (amagi, wurl, uplynk and similar), which carry feeds made for particular
     partners (a TV maker, a streaming service) as well as public ones, and say nothing about who may use them.

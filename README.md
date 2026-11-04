@@ -83,9 +83,8 @@ it can find, including unofficial restreams, so **this project does not take its
 kept only if the owner publishes it, shown by one of these:
 
 - **Its own domain:** the stream is served from a domain of the channel's own website.
-- **Its own website:** the channel's own website refers to the stream's host, or the web page loads the stream
-  when it plays (the build reads the sites of channels nothing else confirms, with a browser for pages that
-  build their content with JavaScript, and caches the result).
+- **Its own website:** the channel's own website refers to the stream's host (the build reads the sites of
+  channels nothing else confirms, and caches the result).
 - **Its own server:** the host is a delivery domain run by the broadcaster itself
   ([`config/live_hosts.yaml`](config/live_hosts.yaml)).
 
@@ -96,9 +95,14 @@ only plays with a spoofed user agent or referrer; and state media under UK/EU sa
 **Left out because nothing proves them:**
 - **Free ad-supported streaming services** (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play,
   Rakuten TV; "FAST", *Free Ad-Supported Streaming Television*). They are free to watch in their own apps, but
-  their channels are licensed to them for those apps, and nothing shows their terms allow the streams to be
-  played elsewhere. Some of their streams are also reached through a third-party redirector. They were included
-  in earlier versions and have been removed.
+  their channels are licensed to them for those apps, and their terms don't allow playing the streams elsewhere.
+  Tubi's say "You may not incorporate the Content into, or stream or retransmit the Content via any hardware or
+  software application or make it available via frames or inline links unless expressly permitted by Tubi in
+  writing", and Pluto TV's say "You may not embed the Video Player into any hardware or software application,
+  even for non-commercial purposes" (quotes from all the terms we could read are on
+  [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html); we could not read Samsung TV
+  Plus's, The Roku Channel's or Rakuten TV's and found no permission). They were included in earlier versions
+  and have been removed.
 - **Playout vendors' hosts** (Amagi, Wurl, Uplynk and similar). They carry feeds made for particular partners as
   well as public ones, and a host name says nothing about who may use a feed.
 - **Streams where only a name in a shared CDN's address matches the channel**, which anyone could have set up.

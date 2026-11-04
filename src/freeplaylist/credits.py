@@ -74,9 +74,16 @@ def credits_html(entries: list[Entry], sources: dict, policy: dict, decisions: l
         key = next((k for k in policy.get("excluded") or {} if reason.startswith(k)), None)
         if key:
             dropped[key] = dropped.get(key, 0) + 1
+    def why(key: str) -> str:
+        item = policy["excluded"][key]
+        text, quotes = (item.get("text"), item.get("quotes") or []) if isinstance(item, dict) else (item, [])
+        quoted = "".join(
+            f'<li><a href="{esc(x["url"])}">{esc(x["service"])} terms</a>: &ldquo;{esc(x["quote"])}&rdquo;</li>'
+            for x in quotes)
+        return esc(" ".join(str(text).split())) + (f"<ul>{quoted}</ul>" if quoted else "")
+
     left_out = "".join(
-        f"<li>{esc(' '.join(str(policy['excluded'][k]).split()))} <em>({n} left out)</em></li>"
-        for k, n in sorted(dropped.items(), key=lambda kv: -kv[1])
+        f"<li>{why(k)} <em>({n} left out)</em></li>" for k, n in sorted(dropped.items(), key=lambda kv: -kv[1])
     )
 
     used = {e.source for e in entries}

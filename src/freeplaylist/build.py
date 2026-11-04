@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import config, credits, enrich, epg, feeds, healthcheck, languages, legal, logos, m3u, net, schedule, snapshots
 from .models import Decision, Entry
-from .sources import browser, curated, internet_archive, iptv_org, website_check, wikimedia_commons
+from .sources import curated, internet_archive, iptv_org, website_check, wikimedia_commons
 
 log = logging.getLogger("freeplaylist")
 PAGES = "https://biskyt.github.io/legalFreeIPTVplaylist"
@@ -42,7 +42,6 @@ class Options:
     health: bool = True
     website_check: bool = True  # fetch broadcasters' websites to confirm streams (see sources/website_check.py)
     logo_check: bool = True  # look for a logo that loads everywhere where the usual one is on Imgur (see logos.py)
-    browser: bool = True  # read websites that build their player with JavaScript in a browser, if one is installed
     extra_vod: bool = True  # Wikimedia Commons
     enrich: bool = True  # TMDB/IMDb ids and posters from Wikidata
     live: bool = True
@@ -165,19 +164,17 @@ def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], 
     hosts_cfg = load("live_hosts")
     rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
     accept = legal.accepted_live_reasons(load("legal"))  # only streams with a provable basis (config/legal.yaml)
-    site_links = page_hosts = None
+    site_links = None
     check = hosts_cfg.get("website_check") or {}
     if opts.website_check and check.get("enabled", True):
         path = opts.state_dir / "website_links.json"
         state = config.load_state(path)
         sites = iptv_org.unverified_sites(api, rules, accept)
-        site_links = website_check.find_hosts(
-            set(sites), state, tonight, everything=opts.all, max_sites=check.get("max_sites", 2500), wanted=sites,
-            render=browser.render if opts.browser else None, max_rendered=check.get("max_rendered", 120))
-        page_hosts = website_check.page_hosts(sites, state)
+        site_links = website_check.find_hosts(set(sites), state, tonight, everything=opts.all,
+                                              max_sites=check.get("max_sites", 2500))
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
         log.info("website check: %d sites with streams to prove", len(sites))
-    entries, decisions = iptv_org.build(api, rules, site_links, accept, page_hosts)
+    entries, decisions = iptv_org.build(api, rules, site_links, accept)
     if opts.logo_check:
         path = opts.state_dir / "logo_check.json"
         state = config.load_state(path)
