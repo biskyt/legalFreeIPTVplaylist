@@ -5,8 +5,8 @@ development by buying me a coffee with the links above._
 
 # Legal free IPTV playlist
 
-M3U playlists of **legally free** live TV (including free, ad-supported services such as Pluto TV), and
-public-domain or openly licensed movies and TV series, for any IPTV app. A GitHub Action rebuilds them every day
+M3U playlists of **legally free** live TV (channels their owners publish) and public-domain or openly
+licensed movies, for any IPTV app, with the reason for every entry published. A GitHub Action rebuilds them every day
 and publishes them to GitHub Pages.
 
 > This project only **links** to streams that their owners make freely available. It hosts no video.
@@ -45,7 +45,7 @@ know the convention list films and episodes as channels, grouped as `Movies: …
   playlist per language (any language with at least 10 entries). Silent films appear in every language's list.
   Live channels get their languages from iptv-org; films from their source, or a per-collection default.
 - **Country in group names:** live channel groups start with a two-letter country code, e.g. `DE | News`,
-  `US | Pluto TV`, so players that only filter on group names can still sort by country. Britain is written
+  `US | News`, so players that only filter on group names can still sort by country. Britain is written
   `UK` there, as IPTV players expect (`tvg-country` uses the ISO code, `GB`); channels without a country use
   `INT`.
 - **Channel logos** are links to images hosted by others, mostly from iptv-org's list, and mostly on Imgur, which
@@ -67,32 +67,42 @@ know the convention list films and episodes as channels, grouped as `Movies: …
 Each build also publishes:
 - [`catalog.json`](https://biskyt.github.io/legalFreeIPTVplaylist/catalog.json): descriptions, licences and source pages;
 - [`report.json`](https://biskyt.github.io/legalFreeIPTVplaylist/report.json): what was accepted or rejected, and why;
-- [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html): every broadcaster.
+- [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html): the legal basis for every channel and film, with links to the evidence.
 
 ## What's included, and why it's legal
+
+**The rule: an entry is published only if we can show why it may be.** For every live channel, film and
+episode, [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html) states the reason and links
+to the evidence, and `catalog.json` carries the same under `legal`. Anything we cannot prove is left out, however
+likely it seems to be fine, and `report.json` lists what was left out and why. The rules are in
+[`config/legal.yaml`](config/legal.yaml), and owners' removal requests (takedowns) are listed there too.
 
 ### Live TV
 Channels come from the [iptv-org](https://github.com/iptv-org/iptv) database. iptv-org lists any public stream
 it can find, including unofficial restreams, so **this project does not take its list as is**. A stream is
-included only if the automatic rules in [`config/live_hosts.yaml`](config/live_hosts.yaml) find it official:
+kept only if the owner publishes it, shown by one of these:
 
-- **Rejected:** a stream with no identified channel; a channel on iptv-org's blocklist (DMCA or NSFW), marked
-  NSFW, or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host;
-  and a stream that only plays with a spoofed user agent or referrer (unless the host is an official one).
-- **Accepted:** a stream on the broadcaster's own domain, or on a delivery domain the broadcaster runs; on a
-  free streaming service (Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV, Xumo Play; see
-  below); on a licensed playout service (Amagi, Wurl and similar) or a US public-access platform; on a general CDN whose address
-  names the broadcaster; or on any host that **the broadcaster's own website links to** (the build checks
-  the sites of channels whose streams nothing else confirms, and caches the result for a week).
-- **Never accepted:** state media under UK/EU sanctions.
-- **Anything else is left out** and listed in `report.json`, so the rules can be improved over time.
-- [`config/live_allowlist.yaml`](config/live_allowlist.yaml) holds manual decisions, which override the rules.
+- **Its own domain:** the stream is served from a domain of the channel's own website.
+- **Its own website:** the channel's own website refers to the stream's host, or the web page loads the stream
+  when it plays (the build reads the sites of channels nothing else confirms, with a browser for pages that
+  build their content with JavaScript, and caches the result).
+- **Its own server:** the host is a delivery domain run by the broadcaster itself
+  ([`config/live_hosts.yaml`](config/live_hosts.yaml)).
 
-**Free streaming services (FAST).** Pluto TV, Samsung TV Plus, Plex, The Roku Channel, Tubi, Rakuten TV and
-Xumo Play are *Free Ad-Supported Streaming Television* services, known in the industry as FAST. They license
-their channels from the rights holders and pay for them with adverts, so they stream them to anyone for free, usually
-without an account. That's why their channels count as legally free here. Their channels are grouped under the
-service's name (e.g. `US | Pluto TV`). Most of them are only available in certain countries.
+Also rejected: a stream with no identified channel; a channel on iptv-org's blocklist (DMCA or NSFW), marked NSFW
+or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host; one that
+only plays with a spoofed user agent or referrer; and state media under UK/EU sanctions.
+
+**Left out because nothing proves them:**
+- **Free ad-supported streaming services** (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play,
+  Rakuten TV; "FAST", *Free Ad-Supported Streaming Television*). They are free to watch in their own apps, but
+  their channels are licensed to them for those apps, and nothing shows their terms allow the streams to be
+  played elsewhere. Some of their streams are also reached through a third-party redirector. They were included
+  in earlier versions and have been removed.
+- **Playout vendors' hosts** (Amagi, Wurl, Uplynk and similar). They carry feeds made for particular partners as
+  well as public ones, and a host name says nothing about who may use a feed.
+- **Streams where only a name in a shared CDN's address matches the channel**, which anyone could have set up.
+- **Takedowns:** anything an owner has asked us to remove, such as Fox's and Yahoo's channels.
 
 Every stream is then **health-checked**. For HLS, both the playlist and its first variant must load. Dead
 streams are dropped; a channel with several streams falls back to the next working one.
@@ -101,22 +111,21 @@ streams are dropped; a channel with several streams falls back to the next worki
 Movies come from [Wikimedia Commons](https://commons.wikimedia.org), the [Internet Archive](https://archive.org/),
 and Blender Studio's open movies.
 
-**Wikimedia Commons** only keeps films that are free in the US *and* in their country of origin, so these are
-the safest choice outside the US. When the same film is available from Commons and the Archive, the Commons
-copy is used.
+**Wikimedia Commons** only keeps films that are free in the US *and* in their country of origin, and each
+file's page shows its licence and who vouched for it, so every Commons film is kept. When the same film is
+available from Commons and the Archive, the Commons copy is used.
 
-**Internet Archive** uploaders set licence and date details themselves, so an item is used only when:
-- it has a public-domain mark and is dated **1977 or earlier**; or
-- it has a CC BY or CC BY-SA licence (NC and ND licences are never used); or
-- it has no licence but is dated **before 1931**, which makes it public domain in the US by age.
+**Blender Studio's open movies** are published by the Blender Foundation itself under CC BY.
 
-The item's own page must confirm the licence, it must have an MP4 file, and it must not be on the
-[denylist](config/denylist.yaml).
+**Internet Archive** items are kept only when the Archive's own record dates them **before 1931**: a work
+published in 1930 or earlier is in the US public domain by age. The Archive's public-domain marks and Creative
+Commons labels are set by whoever uploaded an item (a 1975 ABC TV movie carries a CC BY label there), so they are
+not relied on. The item must also have an MP4 file and not be on the [denylist](config/denylist.yaml).
 
 ### Series
-Series come only from shows listed in [`config/series.yaml`](config/series.yaml), whose episodes are known to
-be in the US public domain, mostly because their copyright was never renewed. Each episode must also carry a
-public-domain or CC BY / BY-SA licence on its Archive page.
+No series episodes are included at the moment. The episodes we had came from the Internet Archive with nothing
+but an uploader's public-domain claim, and no episode is old enough to be public domain by age. The series feed
+exists and is empty; episodes will be added if a source can show why they are free.
 
 ### Important: "public domain" means public domain in the United States
 The films and episodes here are public domain under **US** law. Copyright terms differ between countries.
@@ -135,16 +144,9 @@ they're free in their country of origin too.)
 <!-- credits:start -->
 | Source | What we use | Licence / legal basis | Credit and notes |
 |---|---|---|---|
-| [iptv-org](https://github.com/iptv-org/iptv) | Database of publicly available live TV channels and streams (channels, streams, logos, blocklist) | Data published under the Unlicense (iptv-org/iptv and iptv-org/api) | iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only the streams its rules find official. Each channel belongs to its broadcaster; see credits.html for the list. |
-| [Internet Archive](https://archive.org/) | Public-domain and CC BY / BY-SA movies and TV episodes, their metadata and thumbnails (collections feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger, classic_tv) | Public domain in the US, or the CC licence shown on each item; see each item's page | Files are streamed directly from archive.org. Consider donating at https://archive.org/donate |
+| [iptv-org](https://github.com/iptv-org/iptv) | Database of publicly available live TV channels and streams (channels, streams, logos, blocklist) | Data published under the Unlicense (iptv-org/iptv and iptv-org/api) | iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only the streams it can show the owner publishes. Each channel belongs to its broadcaster; see credits.html for every channel and why it is included. |
+| [Internet Archive](https://archive.org/) | Films published before 1931, their metadata and thumbnails (collections feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger) | Public domain in the US by age: works published in 1930 or earlier entered it on 1 January 2026 | Files are streamed directly from archive.org. Consider donating at https://archive.org/donate |
 | [Blender Studio (Blender Foundation) open movies](https://studio.blender.org/films/) | Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel, Cosmos Laundromat, Spring, Sprite Fright, Wing It!, Caminandes | Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film) | Credit: © Blender Foundation \| studio.blender.org. Streamed from the Internet Archive's copies. |
-| [Pluto TV](https://pluto.tv/) | Free, ad-supported streaming channels | Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners | Linked through jmp2.uk, a third-party redirector used by iptv-org, not an official Pluto TV service. Availability varies by country. |
-| [Samsung TV Plus](https://www.samsungtvplus.com/) | Free, ad-supported streaming channels | Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners | Some streams are linked through jmp2.uk, a third-party redirector. Availability varies by country. |
-| [Plex](https://www.plex.tv/live-tv/) | Free, ad-supported streaming channels | Free to watch from Plex; content and trademarks belong to Plex and its partners |  |
-| [The Roku Channel](https://therokuchannel.roku.com/) | Free, ad-supported streaming channels | Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners |  |
-| [Tubi](https://tubitv.com/) | Free, ad-supported streaming channels | Free to watch from Tubi; content and trademarks belong to Tubi and its partners |  |
-| [Rakuten TV](https://www.rakuten.tv/) | Free, ad-supported streaming channels | Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners | Availability varies by country. |
-| [Xumo Play](https://play.xumo.com/) | Free, ad-supported streaming channels | Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners | Availability varies by country. |
 | [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |
 | [IPTV-EPG.org](https://iptv-epg.org/) | TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list | Free service; listings belong to the broadcasters. Ask us and we'll remove them | Downloaded once a night, per country. |
 | [i.mjh.nz (Matt Huisman)](https://github.com/matthuisman/i.mjh.nz) | TV guide listings (XMLTV) for Pluto TV, Samsung TV Plus, Plex and other free streaming services (Pluto TV and Samsung TV Plus channels matched by the service's own channel id) | Published openly on GitHub; listings belong to the services. Ask us and we'll remove them |  |

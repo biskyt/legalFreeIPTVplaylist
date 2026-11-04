@@ -9,7 +9,9 @@ PD = "http://creativecommons.org/publicdomain/mark/1.0/"
 
 
 def fake_archive(monkeypatch):
-    listing = {"Film_Noir": [{"identifier": "Detour", "year": 1945, "licenseurl": PD}]}
+    # A 1925 film (public domain by age) and a 1944 one that only an uploader says is public domain.
+    listing = {"Film_Noir": [{"identifier": "Detour", "year": 1925, "licenseurl": PD},
+                             {"identifier": "Laura", "year": 1944, "licenseurl": PD}]}
 
     def search(query, limit, **kw):
         for name, items in listing.items():
@@ -19,7 +21,8 @@ def fake_archive(monkeypatch):
 
     def metadata(url, **kw):
         ident = url.rsplit("/", 1)[1]
-        return {"metadata": {"title": ident, "year": "1945" if ident == "Detour" else "2008", "licenseurl": PD},
+        year = {"Detour": "1925", "Laura": "1944"}.get(ident, "2008")
+        return {"metadata": {"title": ident, "year": year, "licenseurl": PD},
                 "files": [{"name": f"{ident}.mp4", "format": "h.264", "length": "4020"}]}
 
     monkeypatch.setattr(ia, "search", search)
@@ -38,11 +41,13 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
             "credits.html", "index.html"} <= names
 
     _, live = m3u.parse((out / "live.m3u").read_text())
-    assert {e["tvg-id"] for e in live} == {"DW.de@SD", "Example.uk@SD", "Pluto1.us@SD", "AlJazeera.qa@English",
-                                           "Euronews.fr@Polish", "Telesur.ve@SD", "Xumo1.us@SD"}
+    # Only streams with a provable basis: the channel's own website domain, or a broadcaster-run host. The
+    # fixture's free streaming services and CDN-name matches (DW, Euronews, teleSUR) are left out.
+    assert {e["tvg-id"] for e in live} == {"Example.uk@SD", "AlJazeera.qa@English"}
     _, movies = m3u.parse((out / "movies.m3u").read_text())
     ids = {e["tvg-id"] for e in movies}
     assert "ia.Detour" in ids and "blender.BigBuckBunny_124" in ids
+    assert "ia.Laura" not in ids  # 1944 and only the uploader's word: not provable
     assert all(e["tvg-type"] == "movie" for e in movies)
 
     playlist = (out / "playlist.m3u").read_text()
@@ -51,19 +56,22 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     assert body == "".join(result.feeds[n].body for n in ("live", "movies", "series"))
     assert (out / "movies.m3u").read_text().startswith("#EXTM3U\n")  # no guide header without live channels
     plan = json.loads((tmp_path / "state" / "epg" / "plan.json").read_text())
-    mjh = "https://raw.githubusercontent.com/matthuisman/i.mjh.nz/master/de/epg.xml"
-    assert plan["mjh"][mjh] == {"dw": ["DW.de@SD"]}
+    assert plan["iptv_epg"]["gb"] == {"Example.uk": ["Example.uk@SD"]} and "de" not in plan["iptv_epg"]
     assert (tmp_path / "state" / "epg" / "channels.xml").exists()
 
     catalog = json.loads((out / "catalog.json").read_text())
     blender = next(i for i in catalog["items"] if i["id"] == "blender.BigBuckBunny_124")
     assert blender["license"] == "CC BY 3.0" and "Blender Foundation" in blender["attribution"]
-    assert "DW" in (out / "credits.html").read_text()
+    example = next(i for i in catalog["items"] if i["id"] == "Example.uk@SD")
+    assert example["legal"]["basis"] == "official:website-domain" and example["legal"]["links"]
+    credits_page = (out / "credits.html").read_text()
+    assert "Example" in credits_page and "ia.Detour" not in credits_page and "Published in 1925" in credits_page
+    assert "who uploaded them" in credits_page and "(1 left out)" in credits_page  # what's left out, and why
+    reasons = {d for d in json.loads((out / "report.json").read_text())["decisions"]["legal"]}
+    assert "rejected:not-proven:uploader-claim" in reasons
     index = (out / "index.html").read_text()
     assert 'href="epg.xml.gz"' in index and '<a href="https://iptv-epg.org/">IPTV-EPG.org</a>' in index
     assert (tmp_path / "state" / "ia_cache.json").exists()
-    _, english = m3u.parse((out / "languages" / "eng.m3u").read_text())
-    assert "DW.de@SD" in {e["tvg-id"] for e in english}
     assert 'tvg-language="English"' in (out / "live.m3u").read_text()
 
 

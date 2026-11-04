@@ -16,7 +16,7 @@ feeds:
   series:
     kind: series
     title: TV series
-    min_entries: 30
+    min_entries: 0   # no series episode has a provable basis at the moment (see legal.yaml)
 
 combined:
   vod:

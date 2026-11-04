@@ -59,7 +59,15 @@ jobs:
         run: python -m freeplaylist build $BUILD --phase harvest --source wikimedia-commons
       - name: Harvest Internet Archive movies
         run: python -m freeplaylist build $BUILD --phase harvest --source internet-archive-movies
+      # Broadcasters' websites that build their player with JavaScript are read in a real browser (see
+      # sources/browser.py). If this step fails, the plain page fetch is all that is used.
+      - name: Install a browser to read JavaScript websites
+        continue-on-error: true
+        run: |
+          pip install -e ".[browser]"
+          playwright install --with-deps chromium
       - name: Harvest live channels (iptv-org and broadcaster websites)
+        timeout-minutes: 90
         run: python -m freeplaylist build $BUILD --phase harvest --source iptv-org
       - name: Check live streams
         run: python -m freeplaylist build $BUILD --phase check-live

@@ -123,7 +123,8 @@ class Verdict:
 
 
 def evaluate(stream: dict, channel: dict | None, blocked: dict[str, str], rules: Rules,
-             website_hosts: dict[str, set[str]] | None = None) -> Verdict:
+             website_hosts: dict[str, set[str]] | None = None,
+             page_hosts: dict[str, set[str]] | None = None) -> Verdict:
     """Decide whether one iptv-org stream is an official, legally free stream."""
     if channel is None:
         return Verdict(False, "no-channel")
@@ -165,8 +166,13 @@ def evaluate(stream: dict, channel: dict | None, blocked: dict[str, str], rules:
     # The remaining rules rely on the URL alone, so a stream that needs spoofed request headers (a common sign
     # of a scraped restream) is not accepted through them.
     official = _matches_website(host, parsed.path, channel, rules)
-    if official is None and host in (website_hosts or {}).get(channel.get("website") or "", ()):
-        official = "official:website-link"  # the broadcaster's own site points to this host
+    if official in (None, "official:cdn-named"):
+        # The broadcaster's own site loads the stream, or points to its host: better proof than a name in the URL.
+        site = channel.get("website") or ""
+        if host in (page_hosts or {}).get(site, ()):
+            official = "official:website-page"
+        elif host in (website_hosts or {}).get(site, ()):
+            official = "official:website-link"
     if official is None:
         return Verdict(False, "unverified")
     if stream.get("user_agent") or stream.get("referrer"):
@@ -201,26 +207,38 @@ def _height(stream: dict) -> int:
     return int(m.group(1)) if m else 0
 
 
-def unverified_sites(api: dict[str, list], rules: Rules) -> set[str]:
-    """Websites of channels that have unverified streams and no accepted one: worth checking for stream links."""
+def unverified_sites(api: dict[str, list], rules: Rules, accept: set[str] | None = None) -> dict[str, set[str]]:
+    """{website: hosts of the streams to prove} for channels that have streams not yet proven and no proven one:
+    worth checking for stream links. With `accept`, a stream accepted for another reason (such as a name in a CDN
+    path) doesn't count as proven."""
     channels = {c["id"]: c for c in api["channels"]}
     blocked = {b["channel"]: b.get("reason", "blocked") for b in api["blocklist"]}
     unverified: set[str] = set()
     accepted: set[str] = set()
+    hosts: dict[str, set[str]] = {}
     for s in api["streams"]:
         channel = channels.get(s.get("channel"))
         v = evaluate(s, channel, blocked, rules)
-        if v.accepted:
+        if v.accepted and (accept is None or v.reason in accept):
             accepted.add(channel["id"])
-        elif v.reason == "unverified":
+        elif v.accepted or v.reason == "unverified":
             unverified.add(channel["id"])
-    return {channels[c]["website"] for c in unverified - accepted if channels[c].get("website")}
+            hosts.setdefault(channel["id"], set()).add(net.host_of(s["url"]))
+    out: dict[str, set[str]] = {}
+    for c in unverified - accepted:
+        if channels[c].get("website"):
+            out.setdefault(channels[c]["website"], set()).update(hosts[c])
+    return out
 
 
-def build(api: dict[str, list], rules: Rules,
-          website_hosts: dict[str, set[str]] | None = None) -> tuple[list[Entry], list[Decision]]:
+def build(api: dict[str, list], rules: Rules, website_hosts: dict[str, set[str]] | None = None,
+          accept: set[str] | None = None,
+          page_hosts: dict[str, set[str]] | None = None) -> tuple[list[Entry], list[Decision]]:
     """One Entry per channel feed. Each carries every accepted stream for that feed, best first, in
-    extra["candidates"]; the health check keeps the first that works."""
+    extra["candidates"]; the health check keeps the first that works.
+
+    With `accept`, only streams accepted for one of those reasons count (see config/legal.yaml); the others are
+    recorded as "not-proven:<reason>", so a channel's group and credit come from a stream that is kept."""
     channels = {c["id"]: c for c in api["channels"]}
     blocked = {b["channel"]: b.get("reason", "blocked") for b in api["blocklist"]}
     feeds = {(f["channel"], f["id"]): f for f in api["feeds"]}
@@ -235,7 +253,9 @@ def build(api: dict[str, list], rules: Rules,
     grouped: dict[tuple[str, str | None], list[tuple[dict, Verdict]]] = {}
     for s in api["streams"]:
         channel = channels.get(s.get("channel"))
-        v = evaluate(s, channel, blocked, rules, website_hosts)
+        v = evaluate(s, channel, blocked, rules, website_hosts, page_hosts)
+        if v.accepted and accept is not None and v.reason not in accept:
+            v = Verdict(False, f"not-proven:{v.reason}")
         decisions.append(Decision(SOURCE, f'{s.get("channel") or "?"} {s["url"]}', v.accepted, v.reason))
         if v.accepted:
             grouped.setdefault((channel["id"], s.get("feed")), []).append((s, v))
@@ -288,8 +308,8 @@ def build(api: dict[str, list], rules: Rules,
                 **({"logo_alternatives": logo_alternatives} if logo_alternatives else {}),
                 "candidates": [
                     {"url": s["url"], "user_agent": s.get("user_agent"), "referrer": s.get("referrer"),
-                     "labels": s.get("labels", [])}
-                    for s, _ in found
+                     "labels": s.get("labels", []), "reason": v.reason}
+                    for s, v in found
                 ],
             },
         ))

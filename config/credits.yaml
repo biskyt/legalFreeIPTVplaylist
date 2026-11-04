@@ -6,6 +6,9 @@
 #   license:      the licence or legal basis that makes it free to use
 #   attribution:  the credit line they ask for (optional)
 #   note:         anything a user should know (optional)
+#   proof:        why entries from this source are kept (shown on credits.html; the rules are in legal.yaml)
+#   excluded:     set on sources this project no longer includes: they stay here so their rules still have a
+#                 credit record, but they're left out of the README table and credits.html
 
 sources:
   iptv-org:
@@ -15,16 +18,26 @@ sources:
     license: Data published under the Unlicense (iptv-org/iptv and iptv-org/api)
     note: >-
       iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only
-      the streams its rules find official. Each channel belongs to its broadcaster; see credits.html for the list.
+      the streams it can show the owner publishes. Each channel belongs to its broadcaster; see credits.html for
+      every channel and why it is included.
+    proof: >-
+      A live stream is kept only if it is served from the channel's own website domain, the channel's own website
+      refers to the stream's host (or its web page loads the stream), or the host is run by the broadcaster itself.
+      Free streaming services, playout vendors' partner feeds and streams matched only by a name in a CDN address
+      are left out.
 
   internet-archive:
     name: Internet Archive
     url: https://archive.org/
     provides: >-
-      Public-domain and CC BY / BY-SA movies and TV episodes, their metadata and thumbnails (collections
-      feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger, classic_tv)
-    license: Public domain in the US, or the CC licence shown on each item; see each item's page
+      Films published before 1931, their metadata and thumbnails (collections feature_films, Film_Noir,
+      SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger)
+    license: >-
+      Public domain in the US by age: works published in 1930 or earlier entered it on 1 January 2026
     note: Files are streamed directly from archive.org. Consider donating at https://archive.org/donate
+    proof: >-
+      Only films the Internet Archive records as published before 1931 are kept. Its public-domain marks and
+      Creative Commons labels are set by whoever uploaded an item, so they are not relied on.
 
   blender:
     name: Blender Studio (Blender Foundation) open movies
@@ -33,9 +46,11 @@ sources:
     license: Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film)
     attribution: "© Blender Foundation | studio.blender.org"
     note: Streamed from the Internet Archive's copies.
+    proof: Published by the Blender Foundation itself, which is the copyright holder, under CC BY.
 
   pluto-tv:
     name: Pluto TV
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://pluto.tv/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Pluto TV; content and trademarks belong to Pluto TV and its partners
@@ -45,6 +60,7 @@ sources:
 
   samsung-tv-plus:
     name: Samsung TV Plus
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://www.samsungtvplus.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Samsung TV Plus; content and trademarks belong to Samsung and its partners
@@ -52,24 +68,28 @@ sources:
 
   plex:
     name: Plex
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://www.plex.tv/live-tv/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Plex; content and trademarks belong to Plex and its partners
 
   roku-channel:
     name: The Roku Channel
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://therokuchannel.roku.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from The Roku Channel; content and trademarks belong to Roku and its partners
 
   tubi:
     name: Tubi
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://tubitv.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Tubi; content and trademarks belong to Tubi and its partners
 
   rakuten-tv:
     name: Rakuten TV
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://www.rakuten.tv/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Rakuten TV; content and trademarks belong to Rakuten TV and its partners
@@ -77,6 +97,7 @@ sources:
 
   xumo-play:
     name: Xumo Play
+    excluded: "Not included: nothing shows the service's terms allow its streams to be played outside its own apps."
     url: https://play.xumo.com/
     provides: Free, ad-supported streaming channels
     license: Free to watch from Xumo Play; content and trademarks belong to Xumo and its partners
@@ -88,6 +109,9 @@ sources:
     provides: Public-domain and freely licensed films and videos (category "Films in the public domain")
     license: Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file
     note: Each film's author and licence are listed in catalog.json and on its Commons page.
+    proof: >-
+      Commons only keeps files that are free in the United States and in the country they come from; each file's
+      page shows its licence and who vouched for it.
 
   iptv-epg-org:
     guide: true   # listed in the TV guide section of the site

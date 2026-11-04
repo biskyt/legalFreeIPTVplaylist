@@ -1,0 +1,77 @@
+# What counts as proof that an entry may be published, and what its owners have asked us to remove.
+#
+# Anything without a basis listed here is left out of the playlists; report.json says what was left out and why,
+# and credits.html shows the basis (with links) for everything that is kept. Loosening this file is a legal
+# decision: add a basis only with evidence you can point to.
+
+# Live channels. The key is the reason the stream was accepted (see live_hosts.yaml and sources/iptv_org.py).
+# Placeholders: {host} the stream's host, {site} the channel's website. Streams accepted for any other reason are
+# dropped, among them:
+#   official:distribution  a playout vendor's host (amagi, wurl, uplynk...) says nothing about who licensed the
+#                          stream: partner feeds such as "yahoo-plex" or "foxsoul-vizio" sit on the same hosts
+#   official:cdn-named     a channel's name in a shared CDN's URL proves nothing about who put it there
+#   fast:*                 free streaming services (Pluto TV, Tubi, Samsung TV Plus, Roku, Plex, Xumo, Rakuten TV):
+#                          nothing shows their terms allow their streams to be played outside their own apps
+live:
+  official:website-domain:
+    title: The stream comes from the channel's own website domain
+    text: "The stream is served from {host}, a domain of the channel's own website ({site})."
+  official:website-link:
+    title: The channel's own website points to the stream
+    text: "The channel's own website ({site}) refers to the stream's host ({host}): the owner publishes it."
+  official:website-page:
+    title: The channel's own web page loads the stream
+    text: "The channel's own web page ({site}) requests the stream from {host} when it plays: the owner publishes it."
+  official:broadcaster-host:
+    title: The stream comes from a server run by the broadcaster
+    text: "{host} is a delivery domain run by the broadcaster itself."
+
+# Films and episodes.
+vod:
+  # Public domain by age: a work published before this year is in the US public domain (US works published in 1930
+  # or earlier entered it on 1 January 2026). The year is the one in the source's own record for the item.
+  public_domain_before: 1931
+  # Sources whose items are accepted by date alone (the source records the year, nothing else is relied on).
+  dated_sources: [internet-archive]
+  # Sources accepted as a whole, and the reason.
+  sources:
+    wikimedia-commons: >-
+      Wikimedia Commons only keeps files that are free in the United States and in the country they come from;
+      the file's page shows its licence and who vouched for it.
+    blender: >-
+      Published by the Blender Foundation itself under a Creative Commons Attribution licence.
+
+# Why things are left out, shown on credits.html with a count. The key starts the reason in report.json
+# (not-proven:<key>... or takedown:...).
+excluded:
+  "fast:": >-
+    Free streaming services (Pluto TV, Tubi, Samsung TV Plus, The Roku Channel, Plex, Xumo Play, Rakuten TV). Their
+    channels are licensed to them for their own apps, and nothing shows their terms allow the streams to be played
+    elsewhere.
+  "official:distribution": >-
+    Streams on playout vendors' servers (amagi, wurl, uplynk and similar), which carry feeds made for particular
+    partners (a TV maker, a streaming service) as well as public ones, and say nothing about who may use them.
+  "official:cdn-named": >-
+    Streams on a shared content delivery network where only the channel's name appears in the address, which
+    anyone could have set up.
+  "uploader-claim": >-
+    Films and episodes from 1931 or later that the Internet Archive marks public domain or Creative Commons only
+    because the person who uploaded them said so. Many are plainly not free (a 1975 ABC TV movie carries a CC BY
+    label), and the copyright status of 1931-1977 films depends on renewal records nobody here has checked.
+  "takedown:": Removed because its owner asked.
+
+# Owners that have asked for removal. An entry is dropped if any of these match: its channel id (the part before
+# "@"), its exact id, its source, or the registered domain of its website or stream host.
+takedowns:
+  - owner: Fox Corporation
+    note: Reported as infringing by Fox during the Amazon Appstore review. Includes Tubi, which Fox owns.
+    channels: [FoxNewsChannel.us, FoxNewsRadio.us, FoxBusinessNetwork.us, FoxWeather.us, FoxSoul.us,
+               LiveNOWfromFOX.us, FoxDeportes.us, Fox.us]
+    entries: [MNT.us@WFLD]
+    sources: [tubi]
+    domains: [fox.com, foxnews.com, foxbusiness.com, foxweather.com, foxsoul.tv, foxdeportes.com, tubitv.com,
+              tubi.tv, tubi.video, tubi.io]
+  - owner: Yahoo
+    note: Reported as infringing by Yahoo during the Amazon Appstore review.
+    channels: [YahooFinance.us]
+    domains: [yahoo.com]

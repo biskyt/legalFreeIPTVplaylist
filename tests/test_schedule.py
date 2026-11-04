@@ -64,7 +64,7 @@ def test_staged_run_harvests_only_named_sources(tmp_path, monkeypatch):
 
     build.run(options({"iptv-org"}))  # stage 1: live only; minimums relaxed while movies are missing
     assert (tmp_path / "site" / "movies.m3u").read_text() == "#EXTM3U\n"
-    assert "DW.de@SD" in (tmp_path / "site" / "live.m3u").read_text()
+    assert "Example.uk@SD" in (tmp_path / "site" / "live.m3u").read_text()
     build.run(options({"internet-archive-movies"}))  # stage 2 keeps stage 1's live channels from the snapshot
     assert "ia.Detour" in (tmp_path / "site" / "movies.m3u").read_text()
-    assert "DW.de@SD" in (tmp_path / "site" / "live.m3u").read_text()
+    assert "Example.uk@SD" in (tmp_path / "site" / "live.m3u").read_text()

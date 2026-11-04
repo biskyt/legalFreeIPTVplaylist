@@ -12,9 +12,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from . import config, credits, enrich, epg, feeds, healthcheck, languages, logos, m3u, net, schedule, snapshots
+from . import config, credits, enrich, epg, feeds, healthcheck, languages, legal, logos, m3u, net, schedule, snapshots
 from .models import Decision, Entry
-from .sources import curated, internet_archive, iptv_org, website_check, wikimedia_commons
+from .sources import browser, curated, internet_archive, iptv_org, website_check, wikimedia_commons
 
 log = logging.getLogger("freeplaylist")
 PAGES = "https://biskyt.github.io/legalFreeIPTVplaylist"
@@ -42,6 +42,7 @@ class Options:
     health: bool = True
     website_check: bool = True  # fetch broadcasters' websites to confirm streams (see sources/website_check.py)
     logo_check: bool = True  # look for a logo that loads everywhere where the usual one is on Imgur (see logos.py)
+    browser: bool = True  # read websites that build their player with JavaScript in a browser, if one is installed
     extra_vod: bool = True  # Wikimedia Commons
     enrich: bool = True  # TMDB/IMDb ids and posters from Wikidata
     live: bool = True
@@ -146,6 +147,8 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     if opts.phase == "harvest":
         return Collected(entries, decisions, {}, harvested, missing)
     entries, dropped = _dedupe(entries)
+    entries, unproven = legal.apply(entries, load("legal"))  # takedowns, and films with nothing but a say-so
+    dropped += unproven
     _identify(entries)
     if opts.vod and opts.enrich and opts.phase in (None, "publish"):
         wd_path = opts.state_dir / "wikidata.json"
@@ -161,17 +164,20 @@ def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], 
     api = iptv_org.fetch_api(opts.api_dir, tuple(f for f in iptv_org.FILES if f not in ("languages", "countries")))
     hosts_cfg = load("live_hosts")
     rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
-    site_links = None
+    accept = legal.accepted_live_reasons(load("legal"))  # only streams with a provable basis (config/legal.yaml)
+    site_links = page_hosts = None
     check = hosts_cfg.get("website_check") or {}
     if opts.website_check and check.get("enabled", True):
         path = opts.state_dir / "website_links.json"
         state = config.load_state(path)
-        sites = iptv_org.unverified_sites(api, rules)
-        site_links = website_check.find_hosts(sites, state, tonight, everything=opts.all,
-                                              max_sites=check.get("max_sites", 2500))
+        sites = iptv_org.unverified_sites(api, rules, accept)
+        site_links = website_check.find_hosts(
+            set(sites), state, tonight, everything=opts.all, max_sites=check.get("max_sites", 2500), wanted=sites,
+            render=browser.render if opts.browser else None, max_rendered=check.get("max_rendered", 120))
+        page_hosts = website_check.page_hosts(sites, state)
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
-        log.info("website check: %d sites with unverified streams", len(sites))
-    entries, decisions = iptv_org.build(api, rules, site_links)
+        log.info("website check: %d sites with streams to prove", len(sites))
+    entries, decisions = iptv_org.build(api, rules, site_links, accept, page_hosts)
     if opts.logo_check:
         path = opts.state_dir / "logo_check.json"
         state = config.load_state(path)
@@ -295,13 +301,15 @@ def report(decisions: list[Decision], built: dict[str, feeds.Feed]) -> dict:
     }
 
 
-def catalog(built: dict[str, feeds.Feed]) -> dict:
+def catalog(built: dict[str, feeds.Feed], policy: dict | None = None, sources: dict | None = None) -> dict:
     keys = ("id", "kind", "title", "group", "url", "year", "duration", "series_name", "season", "episode", "logo",
             "languages", "countries", "tmdb", "imdb", "license", "attribution", "page", "description", "source")
     items = []
     for name in ("live", "movies", "series"):
         for e in built[name].entries:
             item = {k: getattr(e, k) for k in keys if getattr(e, k) not in (None, "", [])}
+            if policy is not None:
+                item["legal"] = legal.evidence(e, policy, sources).as_dict()
             items.append(item)
     return {
         "generated": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -333,9 +341,11 @@ def index_html(built: dict[str, feeds.Feed], sources: dict | None = None) -> str
 table{{border-collapse:collapse}}td,th{{border-bottom:1px solid #ccc;padding:.3rem .8rem;text-align:left}}</style>
 </head><body>
 <h1>Legal free IPTV playlist</h1>
-<p>Legally free live TV (including free streaming services such as Pluto TV), public-domain and openly
-licensed movies and series, as M3U playlists.
-Rebuilt daily. This site only links to streams; it hosts no video.</p>
+<p>Live TV channels that their owners publish, and public-domain and openly licensed movies, as M3U
+playlists. Rebuilt daily. This site only links to streams; it hosts no video.</p>
+<p><strong>Why each entry is legal:</strong> an entry is published only when we can show why it may be.
+<a href="credits.html">credits.html</a> gives the reason for every channel and film, with links to the
+evidence, and lists what is left out and why.</p>
 <table><thead><tr><th>Playlist</th><th>Contents</th><th>Entries</th></tr></thead><tbody>{rows(main)}</tbody></table>
 <p>Add <code>{PAGES}/playlist.m3u</code> (everything) to your IPTV app, or the separate feeds if your app
 takes one playlist per type. Movies and series use an open
@@ -353,25 +363,27 @@ has them; the listings belong to the broadcasters and services):</p>
 <code>tvg-language</code> and <code>tvg-country</code>, so players can filter the main playlists too. Silent films
 appear in every language's playlist.</p>
 <table><thead><tr><th>Playlist</th><th>Language</th><th>Entries</th></tr></thead><tbody>{lang_rows}</tbody></table>
-<p><a href="credits.html">Credits</a> · <a href="catalog.json">catalog.json</a> ·
+<p><a href="credits.html">Sources, credits and legal basis</a> · <a href="catalog.json">catalog.json</a> ·
 <a href="report.json">build report</a> · <a href="{REPO}">source code and issues</a></p>
 </body></html>
 """
 
 
 def write_site(out: Path, built: dict[str, feeds.Feed], decisions: list[Decision], sources: dict,
-               guide: str | None = None) -> None:
+               guide: str | None = None, policy: dict | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     for name, feed in built.items():
         path = out / f"{name}.m3u"
         path.parent.mkdir(parents=True, exist_ok=True)
         has_live = any(e.kind == "live" for e in feed.entries)
         path.write_text(feed.document([guide] if guide and has_live else []), encoding="utf-8", newline="\n")
-    (out / "catalog.json").write_text(json.dumps(catalog(built), ensure_ascii=False), encoding="utf-8")
+    (out / "catalog.json").write_text(json.dumps(catalog(built, policy, sources), ensure_ascii=False),
+                                      encoding="utf-8")
     (out / "report.json").write_text(json.dumps(report(decisions, built), indent=1, ensure_ascii=False),
                                      encoding="utf-8")
     everything = [e for n in ("live", "movies", "series") for e in built[n].entries]
-    (out / "credits.html").write_text(credits.broadcasters_html(everything, sources), encoding="utf-8")
+    (out / "credits.html").write_text(credits.credits_html(everything, sources, policy or {}, decisions),
+                                      encoding="utf-8")
     (out / "index.html").write_text(index_html(built, sources), encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
 
@@ -403,5 +415,6 @@ def run(opts: Options) -> Result:
         # then `freeplaylist epg`, which adds the ready-made guides and merges everything (see epg.py).
         guides = iptv_org.fetch_api(opts.api_dir, ("guides",))["guides"]
         epg.write_plan(opts.state_dir, epg.plan(built["live"].entries, guides, tonight))
-    write_site(opts.out, built, decisions, sources, f"{PAGES}/{guide}" if guide else None)
+    write_site(opts.out, built, decisions, sources, f"{PAGES}/{guide}" if guide else None,
+               config.load("legal", opts.config_dir))
     return Result(built, decisions)
