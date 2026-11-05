@@ -1,4 +1,7 @@
-# What counts as proof that an entry may be published, and what its owners have asked us to remove.
+# What counts as a basis for publishing an entry, and what its owners have asked us to remove.
+#
+# For live channels the basis shows the owner serves the stream openly from their own site. That is not a licence
+# to play it in other apps: each channel's terms are linked on credits.html for that.
 #
 # Anything without a basis listed here is left out of the playlists; report.json says what was left out and why,
 # and credits.html shows the basis (with links) for everything that is kept. Loosening this file is a legal
@@ -12,13 +15,13 @@
 #   official:cdn-named     a channel's name in a shared CDN's URL proves nothing about who put it there
 live:
   official:website-domain:
-    title: The stream comes from the channel's own website domain
-    text: "The stream is served from {host}, a domain of the channel's own website ({site})."
+    title: Served from the channel's own website domain
+    text: "Served openly (no login) from {host}, a domain of the channel's own website ({site})."
   official:website-link:
-    title: The channel's own website points to the stream
-    text: "The channel's own website ({site}) refers to the stream's host ({host}): the owner publishes it."
+    title: The channel's own website refers to the stream
+    text: "The channel's own website ({site}) refers to the stream's host ({host})."
   official:broadcaster-host:
-    title: The stream comes from a server run by the broadcaster
+    title: Served from a server run by the broadcaster
     text: "{host} is a delivery domain run by the broadcaster itself."
 
 # Films and episodes.

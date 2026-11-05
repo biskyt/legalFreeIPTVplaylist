@@ -47,8 +47,11 @@ def test_live_evidence_names_the_basis_and_links_to_the_channel(entry):
     cands = [{"url": "https://cdn.example/a.m3u8", "reason": "official:website-link"}]
     e = entry(id="X.de@SD", url="https://cdn.example/a.m3u8", page="https://x.example/",
               extra={"reason": "official:website-domain", "candidates": cands})
+    e.extra["terms"] = ["https://x.example/terms"]
     ev = legal.evidence(e, POLICY)
     assert ev.basis == "official:website-link"  # the stream actually used, not the entry's first choice
+    assert ev.terms == ("https://x.example/terms",) and ev.as_dict()["terms"] == ["https://x.example/terms"]
+    assert "publishes it" not in ev.text and "licence" not in ev.text  # it's not claimed to be a licence
     assert "https://x.example/" in ev.text and "cdn.example" in ev.text
     assert ev.links == (("Channel website", "https://x.example/"),)
 
@@ -59,9 +62,13 @@ def test_film_evidence_links_to_the_item_licence_and_imdb(entry):
     assert ev.basis == "published-before-1931" and "1925" in ev.text
     labels = dict(ev.links)
     assert labels["Source page"] == "https://archive.org/details/x" and labels["IMDb"].endswith("/tt0001/")
+    sources = {"wikimedia-commons": {"name": "Wikimedia Commons", "terms": "https://commons.example/terms"},
+               "internet-archive": {"terms": "https://ia.example/terms"}}
     commons = legal.evidence(entry(id="c", kind="movie", source="wikimedia-commons", page="https://c.example/"), POLICY,
-                             {"wikimedia-commons": {"name": "Wikimedia Commons"}})
+                             sources)
     assert commons.title == "Accepted source: Wikimedia Commons" and "free in the United States" in commons.text
+    assert commons.terms == ("https://commons.example/terms",)
+    assert legal.evidence(e, POLICY, sources).terms == ("https://ia.example/terms",)
 
 
 def test_only_accepted_reasons_count_as_proof():
@@ -102,14 +109,20 @@ def test_sites_with_only_weak_proof_are_worth_checking(api):
 
 def test_credits_page_shows_evidence_exclusions_and_sources(entry):
     live = entry(id="X.de@SD", title="X", page="https://x.example/", url="https://cdn.example/a.m3u8",
-                 extra={"broadcaster": "X TV", "country": "DE", "reason": "official:website-domain"})
+                 extra={"broadcaster": "X TV", "country": "DE", "reason": "official:website-domain",
+                        "terms": ["https://x.example/terms"]})
+    nothing = entry(id="Y.de@SD", title="Y", page="https://y.example/", url="https://cdn.example/b.m3u8",
+                    extra={"broadcaster": "Y TV", "country": "DE", "reason": "official:website-domain"})
     film = vod(entry, id="ia.old", title="Old Film (1925)", year=1925, attribution="Old Film by A. Maker")
     sources = {"iptv-org": {"name": "iptv-org", "url": "https://iptv.example/", "provides": "Channels", "license": "L",
                             "proof": "Kept only with proof."},
                "internet-archive": {"name": "Internet Archive", "url": "https://archive.org/", "provides": "Films",
                                     "license": "L"},
                }
-    page = credits.credits_html([live, film], sources, POLICY)
+    page = credits.credits_html([live, nothing, film], sources, POLICY)
+    assert '<a href="https://x.example/terms">Terms and conditions</a>' in page
+    assert "None found on the site" in page  # Y TV: said plainly, not left blank
+    assert "not claim a licence" in page
     assert "X TV" in page and "https://x.example/" in page and "Old Film (1925)" in page
     assert "Old Film by A. Maker" in page and "Kept only with proof." in page
     assert "left out" not in page  # nothing about what isn't included

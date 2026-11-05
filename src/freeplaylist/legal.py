@@ -24,9 +24,11 @@ class Evidence:
     title: str  # short label for the basis
     text: str  # one sentence saying why the entry may be published
     links: tuple[tuple[str, str], ...] = ()  # (label, url) pointing at the evidence
+    terms: tuple[str, ...] = ()  # the owner's terms and conditions, where we found them
 
     def as_dict(self) -> dict:
-        return {"basis": self.basis, "title": self.title, "text": self.text, "links": [list(x) for x in self.links]}
+        return {"basis": self.basis, "title": self.title, "text": self.text, "links": [list(x) for x in self.links],
+                "terms": list(self.terms)}
 
 
 def accepted_live_reasons(policy: dict) -> set[str]:
@@ -79,7 +81,7 @@ def evidence(e: Entry, policy: dict, sources: dict | None = None) -> Evidence:
         host = net.host_of(e.url)
         text = (rule.get("text") or "No basis recorded.").format(host=host, site=e.page or "its website")
         links = (("Channel website", e.page),) if e.page else ()
-        return Evidence(reason, rule.get("title", reason), text, links)
+        return Evidence(reason, rule.get("title", reason), text, links, tuple(e.extra.get("terms") or ()))
     vod = policy.get("vod") or {}
     basis = _vod_basis(e, vod) or ""
     links = [("Source page", e.page)] if e.page else []
@@ -90,8 +92,11 @@ def evidence(e: Entry, policy: dict, sources: dict | None = None) -> Evidence:
     if basis.startswith("source:"):
         reason = " ".join(str((vod.get("sources") or {}).get(e.source, "")).split())
         who = (sources or {}).get(e.source, {}).get("name", e.source)
-        return Evidence(basis, f"Accepted source: {who}", reason, tuple(links))
+        terms = (sources or {}).get(e.source, {}).get("terms")
+        return Evidence(basis, f"Accepted source: {who}", reason, tuple(links), (terms,) if terms else ())
     cutoff = vod.get("public_domain_before", 1931)
     text = (f"Published in {e.year}: works published before {cutoff} are in the US public domain. "
             "The year is the one in the Internet Archive's own record for the item.")
-    return Evidence(basis, f"Public domain by age (published before {cutoff})", text, tuple(links))
+    terms = (sources or {}).get(e.source, {}).get("terms")
+    return Evidence(basis, f"Public domain by age (published before {cutoff})", text, tuple(links),
+                    (terms,) if terms else ())

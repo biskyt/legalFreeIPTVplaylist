@@ -60,3 +60,44 @@ def test_malformed_links_and_failing_sites_dont_stop_the_check():
         raise ValueError("Invalid IPv6 URL")
 
     assert website_check.site_hosts("https://tv.example/", boom) == (set(), False)
+
+
+FOOTER = """<footer><a href="/privacy">Privacy policy</a> <a href="/cookies">Cookie settings</a>
+<a href="/en/terms-of-use">Terms of use</a> <a href="https://x.example/agb"><span>AGB</span></a>
+<a href="/mentions-legales">Mentions légales</a> <a href="mailto:a@b.c">terms by mail</a>
+<a href="/en/terms-of-use">Terms of use</a></footer>"""
+
+
+def test_terms_links_in_any_language_without_privacy_pages():
+    links = website_check.terms_links(FOOTER, "https://tv.example/")
+    assert links == ["https://tv.example/en/terms-of-use", "https://x.example/agb",
+                     "https://tv.example/mentions-legales"]  # privacy, cookies and mailto left out; no repeats
+    assert website_check.terms_links("<a href='/about'>About</a>", "https://tv.example/") == []
+    headlines = ('<a href="/2026/10/la-diputacio-amplia-fins-al-29-doctubre-el-termini-per-a-participar-en-el-concurs">'
+                 "La Diputació amplia el termini per a participar en el concurs</a>"
+                 '<a href="/media/the-ai-spending-frenzy-could-hit-a-political-roadblock">The AI spending frenzy and '
+                 "the conditions of a political roadblock after the midterms</a>")
+    assert website_check.terms_links(headlines, "https://tv.example/") == []  # news, not terms
+    assert website_check.terms_links(FOOTER, "https://tv.example/", limit=1) == ["https://tv.example/en/terms-of-use"]
+
+
+def test_find_terms_caches_and_retries():
+    calls = []
+
+    def fetch(url, **kw):
+        calls.append(url)
+        if "down" in url:
+            return net.Probe(None, url, b"", "timeout")
+        return net.Probe(200, url, FOOTER.encode())
+
+    state = {}
+    sites = {"https://tv.example/", "https://down.example/"}
+    found = website_check.find_terms(sites, state, fetch=fetch)
+    assert found == {"https://tv.example/": ["https://tv.example/en/terms-of-use", "https://x.example/agb",
+                                             "https://tv.example/mentions-legales"]}
+    assert state["https://down.example/"]["ok"] is False
+    website_check.find_terms(sites, state, fetch=fetch)
+    assert len(calls) == 2  # both remembered (the failure for a day, the answer for a month)
+    state["https://down.example/"]["t"] -= 2 * 86400
+    website_check.find_terms(sites, state, fetch=fetch)
+    assert len(calls) == 3  # only the failed one is asked again

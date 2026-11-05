@@ -175,6 +175,16 @@ def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], 
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
         log.info("website check: %d sites with streams to prove", len(sites))
     entries, decisions = iptv_org.build(api, rules, site_links, accept)
+    if opts.website_check:
+        # The terms and conditions of each channel's website, to point to on credits.html.
+        path = opts.state_dir / "website_terms.json"
+        state = config.load_state(path)
+        sites = {e.page for e in entries if e.page}
+        terms = website_check.find_terms(sites, state, max_sites=check.get("max_terms", 400))
+        config.save_state(path, {s: v for s, v in state.items() if s in sites})
+        for e in entries:
+            e.extra["terms"] = terms.get(e.page, [])
+        log.info("terms: found for %d of %d channel websites", len(terms), len(sites))
     if opts.logo_check:
         path = opts.state_dir / "logo_check.json"
         state = config.load_state(path)

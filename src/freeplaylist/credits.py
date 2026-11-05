@@ -75,17 +75,22 @@ def credits_html(entries: list[Entry], sources: dict, policy: dict) -> str:
         if (key in used or key == "iptv-org" and live or key == "internet-archive" and vod)
     )
 
+    def terms(ev) -> str:
+        if ev.terms:
+            return " · ".join(f'<a href="{esc(u)}">Terms and conditions</a>' for u in ev.terms[:2])
+        return "<small>None found on the site: check the channel website</small>"
+
     def live_row(e: Entry) -> str:
         ev = evid[e.id]
         name = e.extra.get("broadcaster") or e.title
-        return "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
-            esc(name), esc(e.extra.get("country") or ""), esc(ev.text), _links(ev.links))
+        return "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+            esc(name), esc(e.extra.get("country") or ""), esc(ev.text), _links(ev.links), terms(ev))
 
     def vod_row(e: Entry) -> str:
         ev = evid[e.id]
         credit = f"<br><small>{esc(e.attribution)}</small>" if e.attribution else ""
-        return "<tr><td>{}{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
-            esc(e.title), credit, e.year or "", esc(ev.text), _links(ev.links))
+        return "<tr><td>{}{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+            esc(e.title), credit, e.year or "", esc(ev.text), _links(ev.links), terms(ev))
 
     name = lambda e: (e.extra.get("broadcaster") or e.title).lower()  # noqa: E731
     live_rows = "".join(live_row(e) for e in sorted(live, key=name))
@@ -100,17 +105,20 @@ small{{color:#555}}</style>
 </head><body>
 <h1>Sources, credits and legal basis</h1>
 <p>This project only links to streams and files; it hosts no video. Each channel, film and episode belongs to its
-owner. An entry is published only when there is a checkable reason it may be: the table rows below say what that
-reason is for every entry and link to the evidence. If you own
+owner. <strong>Films</strong> are public domain or openly licensed: the basis and evidence for each are below.
+<strong>Live channels</strong> are streams that their owners serve openly (no login) from their own websites.
+We link to them; we do not claim a licence to play them in other apps, and we have not verified that every owner's
+terms allow it. Each channel's terms and conditions are linked below where its website has them (many small
+broadcasters publish none). If you own
 something listed here and want it removed, <a href="https://github.com/biskyt/legalFreeIPTVplaylist/issues">tell us</a>
 and it will be removed.</p>
-<h2>What counts as proof</h2><ul>{bases}</ul>
+<h2>Basis for what is included</h2><ul>{bases}</ul>
 <h2>Sources</h2><ul>{items}</ul>
 <h2 id="live">Live channels ({len(live)})</h2>
-<table><thead><tr><th>Channel</th><th>Country</th><th>Why it may be published</th><th>Evidence</th></tr></thead>
+<table><thead><tr><th>Channel</th><th>Country</th><th>Basis</th><th>Evidence</th><th>Terms</th></tr></thead>
 <tbody>{live_rows}</tbody></table>
 <h2 id="films">Films and episodes ({len(vod)})</h2>
-<table><thead><tr><th>Title</th><th>Year</th><th>Why it may be published</th><th>Evidence</th></tr></thead>
+<table><thead><tr><th>Title</th><th>Year</th><th>Basis</th><th>Evidence</th><th>Terms</th></tr></thead>
 <tbody>{vod_rows}</tbody></table>
 </body></html>
 """

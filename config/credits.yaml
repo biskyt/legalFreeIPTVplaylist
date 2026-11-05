@@ -7,6 +7,7 @@
 #   attribution:  the credit line they ask for (optional)
 #   note:         anything a user should know (optional)
 #   proof:        why entries from this source are kept (shown on credits.html; the rules are in legal.yaml)
+#   terms:        the source's terms and conditions, linked from credits.html
 
 sources:
   iptv-org:
@@ -20,7 +21,8 @@ sources:
       every channel and why it is included.
     proof: >-
       A live stream is kept only if it is served from the channel's own website domain, the channel's own website
-      refers to the stream's host, or the host is run by the broadcaster itself.
+      refers to the stream's host, or the host is run by the broadcaster itself. That shows the owner serves it
+      openly; it is not a licence, so each channel's terms and conditions are linked.
 
   internet-archive:
     name: Internet Archive
@@ -31,6 +33,7 @@ sources:
     license: >-
       Public domain in the US by age: works published in 1930 or earlier entered it on 1 January 2026
     note: Files are streamed directly from archive.org. Consider donating at https://archive.org/donate
+    terms: https://archive.org/about/terms.php
     proof: >-
       Only films the Internet Archive records as published before 1931, which are in the US public domain by age.
 
@@ -41,6 +44,7 @@ sources:
     license: Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film)
     attribution: "© Blender Foundation | studio.blender.org"
     note: Streamed from the Internet Archive's copies.
+    terms: https://studio.blender.org/films/
     proof: Published by the Blender Foundation itself, which is the copyright holder, under CC BY.
 
   wikimedia-commons:
@@ -49,6 +53,7 @@ sources:
     provides: Public-domain and freely licensed films and videos (category "Films in the public domain")
     license: Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file
     note: Each film's author and licence are listed in catalog.json and on its Commons page.
+    terms: https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use
     proof: >-
       Commons only keeps files that are free in the United States and in the country they come from; each file's
       page shows its licence and who vouched for it.

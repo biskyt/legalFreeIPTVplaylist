@@ -79,13 +79,17 @@ likely it seems to be fine, and `report.json` lists what was left out and why. T
 ### Live TV
 Channels come from the [iptv-org](https://github.com/iptv-org/iptv) database. iptv-org lists any public stream
 it can find, including unofficial restreams, so **this project does not take its list as is**. A stream is
-kept only if the owner publishes it, shown by one of these:
+kept only if its owner serves it openly (no login), shown by one of these:
 
 - **Its own domain:** the stream is served from a domain of the channel's own website.
 - **Its own website:** the channel's own website refers to the stream's host (the build reads the sites of
   channels nothing else confirms, and caches the result).
 - **Its own server:** the host is a delivery domain run by the broadcaster itself
   ([`config/live_hosts.yaml`](config/live_hosts.yaml)).
+
+This shows the owner serves the stream openly; it is **not a licence** to play it in other apps. Each channel's
+terms and conditions are linked on [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html)
+where its website has them (many small broadcasters publish none), and we remove any channel whose owner objects.
 
 Also rejected: a stream with no identified channel; a channel on iptv-org's blocklist (DMCA or NSFW), marked NSFW
 or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host; one that
