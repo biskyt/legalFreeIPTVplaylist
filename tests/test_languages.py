@@ -1,11 +1,7 @@
-from pathlib import Path
-
 import pytest
 
 from freeplaylist import config, feeds, languages, m3u
-from freeplaylist.sources import iptv_org
-
-FIXTURES = Path(__file__).parent / "fixtures" / "iptv_org"
+from freeplaylist.sources import curated, internet_archive
 
 
 @pytest.mark.parametrize("value,code", [
@@ -26,14 +22,23 @@ def test_attributes_written(entry):
     assert "tvg-language" not in m3u.render_entry(entry()).split("\n")[0]
 
 
-def test_live_languages_and_countries():
-    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
-    entries, _ = iptv_org.build(iptv_org.fetch_api(FIXTURES), rules)
+def test_the_vendored_name_lists_cover_what_we_use():
+    languages.load(config.load("languages")["languages"])
+    languages.load_countries(config.load("countries")["countries"])
+    assert languages.name("fas") == "Persian" and languages.name("quc") != "quc"  # a rare language too
+    assert languages.normalise("Persian") == "fas" and languages.normalise("Welsh") == "cym"
+    assert languages.country("the United States") == "US" and languages.country("United Kingdom") == "GB"
+    assert languages.country_code("UK") == "GB" and languages.country("Atlantis") is None
+
+
+def test_live_channels_are_curated_with_languages_and_countries():
+    languages.load(config.load("languages")["languages"])
+    entries, _ = curated.build({"direct": config.load("curated")["direct"]}, internet_archive.MetadataCache({}))
     by_id = {e.id: e for e in entries}
-    assert by_id["Example.uk@SD"].countries == ["GB"]  # iptv-org's UK is ISO GB
-    assert by_id["Local1.us@SD"].countries == ["US"]  # s/US-CA counts as the US, once
-    assert by_id["DW.de@SD"].countries == ["DE"]  # regions only: falls back to the channel's country
-    assert by_id["Euronews.fr@Polish"].languages == ["pol"]
+    assert by_id["VoATVPersian.us@SD"].languages == ["fas"] and by_id["VoATVPersian.us@SD"].countries == ["IR"]
+    assert by_id["VoATVChina.cn@SD"].languages == ["zho"] and by_id["VoATVChina.cn@SD"].countries == ["CN"]
+    assert by_id["DistrictofColumbiaNetwork.us@SD"].languages == ["eng"]
+    assert all(e.kind == "live" and e.page and e.logo.startswith("https://") for e in entries)
 
 
 def _feed(name, kind, items, entry):

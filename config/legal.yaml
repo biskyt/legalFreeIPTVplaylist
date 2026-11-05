@@ -1,28 +1,6 @@
 # What counts as a basis for publishing an entry, and what its owners have asked us to remove.
 #
-# For live channels the basis shows the owner serves the stream openly from their own site. That is not a licence
-# to play it in other apps: each channel's terms are linked on credits.html for that.
-#
-# Anything without a basis listed here is left out of the playlists; report.json says what was left out and why,
-# and credits.html shows the basis (with links) for everything that is kept. Loosening this file is a legal
-# decision: add a basis only with evidence you can point to.
-
-# Live channels. The key is the reason the stream was accepted (see live_hosts.yaml and sources/iptv_org.py).
-# Placeholders: {host} the stream's host, {site} the channel's website. Streams accepted for any other reason are
-# dropped, among them:
-#   official:distribution  a playout vendor's host (amagi, wurl, uplynk...) says nothing about who licensed the
-#                          stream: feeds made for particular partners sit on the same hosts as public ones
-#   official:cdn-named     a channel's name in a shared CDN's URL proves nothing about who put it there
-live:
-  official:website-domain:
-    title: Served from the channel's own website domain
-    text: "Served openly (no login) from {host}, a domain of the channel's own website ({site})."
-  official:website-link:
-    title: The channel's own website refers to the stream
-    text: "The channel's own website ({site}) refers to the stream's host ({host})."
-  official:broadcaster-host:
-    title: Served from a server run by the broadcaster
-    text: "{host} is a delivery domain run by the broadcaster itself."
+# Live channels are included only with the owner's permission, recorded in permissions.yaml (see there).
 
 # Films and episodes.
 vod:

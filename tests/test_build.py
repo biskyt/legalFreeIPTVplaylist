@@ -1,10 +1,8 @@
 import json
-from pathlib import Path
 
 from freeplaylist import build, healthcheck, m3u
 from freeplaylist.sources import internet_archive as ia
 
-FIXTURES = Path(__file__).parent / "fixtures" / "iptv_org"
 PD = "http://creativecommons.org/publicdomain/mark/1.0/"
 
 
@@ -29,12 +27,11 @@ def fake_archive(monkeypatch):
     monkeypatch.setattr(ia.net, "get_json", metadata)
 
 
-def test_offline_build_writes_site(tmp_path, monkeypatch, permitted_config):
+def test_offline_build_writes_site(tmp_path, monkeypatch):
     fake_archive(monkeypatch)
     out = tmp_path / "site"
-    opts = build.Options(out=out, state_dir=tmp_path / "state", api_dir=FIXTURES, health=False,
-                         website_check=False, extra_vod=False, enrich=False, enforce_minimums=False,
-                         config_dir=permitted_config)
+    opts = build.Options(out=out, state_dir=tmp_path / "state", health=False, extra_vod=False, enrich=False,
+                         enforce_minimums=False)
     result = build.run(opts)
 
     names = {p.name for p in out.iterdir()}
@@ -42,9 +39,8 @@ def test_offline_build_writes_site(tmp_path, monkeypatch, permitted_config):
             "credits.html", "index.html"} <= names
 
     _, live = m3u.parse((out / "live.m3u").read_text())
-    # Only channels whose owners allow their use, and whose stream is the owner's own (domain or broadcaster-run
-    # host): DW has a permission here, but its only stream is a name in a CDN address, so it's left out.
-    assert {e["tvg-id"] for e in live} == {"Example.uk@SD", "Local1.us@SD", "AlJazeera.qa@English"}
+    # The live channels are the curated ones, each with its owner's permission in config/permissions.yaml.
+    assert {e["tvg-id"] for e in live} == {"VoATVPersian.us@SD", "VoATVChina.cn@SD", "DistrictofColumbiaNetwork.us@SD"}
     _, movies = m3u.parse((out / "movies.m3u").read_text())
     ids = {e["tvg-id"] for e in movies}
     assert "ia.Detour" in ids and "blender.BigBuckBunny_124" in ids
@@ -53,29 +49,28 @@ def test_offline_build_writes_site(tmp_path, monkeypatch, permitted_config):
 
     playlist = (out / "playlist.m3u").read_text()
     head, _, body = playlist.partition("\n")
-    assert head == '#EXTM3U url-tvg="https://biskyt.github.io/legalFreeIPTVplaylist/epg.xml.gz"'
+    assert head == "#EXTM3U"
     assert body == "".join(result.feeds[n].body for n in ("live", "movies", "series"))
-    assert (out / "movies.m3u").read_text().startswith("#EXTM3U\n")  # no guide header without live channels
-    plan = json.loads((tmp_path / "state" / "epg" / "plan.json").read_text())
-    assert plan["iptv_epg"]["gb"] == {"Example.uk": ["Example.uk@SD"]} and "de" not in plan["iptv_epg"]
-    assert (tmp_path / "state" / "epg" / "channels.xml").exists()
 
     catalog = json.loads((out / "catalog.json").read_text())
     blender = next(i for i in catalog["items"] if i["id"] == "blender.BigBuckBunny_124")
     assert blender["license"] == "CC BY 3.0" and "Blender Foundation" in blender["attribution"]
-    example = next(i for i in catalog["items"] if i["id"] == "Example.uk@SD")
-    assert example["legal"]["basis"] == "permission" and example["legal"]["terms"] == ["https://example.example/terms"]
-    assert "Anyone may redistribute our live stream." in example["legal"]["text"]
+    voa = next(i for i in catalog["items"] if i["id"] == "VoATVPersian.us@SD")
+    assert voa["legal"]["basis"] == "permission" and voa["legal"]["terms"] == ["https://www.voanews.com/p/5338.html"]
+    assert "in the public domain" in voa["legal"]["text"] and voa["source"] == "voice-of-america"
     credits_page = (out / "credits.html").read_text()
-    assert "Example" in credits_page and "ia.Detour" not in credits_page and "Published in 1925" in credits_page
-    assert "Anyone may redistribute our live stream." in credits_page and "example.example/terms" in credits_page
+    assert "VOA Persian TV" in credits_page and "ia.Detour" not in credits_page and "Published in 1925" in credits_page
+    assert "in the public domain" in credits_page and "Creative Commons Attribution 3.0" in credits_page
+    assert "https://ir.voanews.com/live/video/86" in credits_page  # where the owner publishes the stream address
     assert "left out" not in credits_page and "uploader" not in credits_page  # only what's included is listed
     reasons = {d for d in json.loads((out / "report.json").read_text())["decisions"]["legal"]}
     assert "rejected:not-proven:uploader-claim" in reasons
-    index = (out / "index.html").read_text()
-    assert 'href="epg.xml.gz"' in index and '<a href="https://iptv-epg.org/">IPTV-EPG.org</a>' in index
     assert (tmp_path / "state" / "ia_cache.json").exists()
-    assert 'tvg-language="English"' in (out / "live.m3u").read_text()
+    live_text = (out / "live.m3u").read_text()
+    assert 'tvg-language="Persian"' in live_text and 'tvg-country="IR"' in live_text
+    published = (p.read_text() for p in out.rglob("*") if p.is_file() and p.suffix in (".html", ".m3u", ".json"))
+    everything = "".join(published).lower()
+    assert "iptv-org" not in everything and "iptv-epg" not in everything  # nothing names where lists came from
 
 
 def test_phased_build_matches_a_single_build(tmp_path, monkeypatch):
@@ -89,9 +84,8 @@ def test_phased_build_matches_a_single_build(tmp_path, monkeypatch):
     monkeypatch.setattr(healthcheck.Checker, "check", check)
 
     def run(name, **kw):
-        return build.run(build.Options(out=tmp_path / name, state_dir=tmp_path / f"state-{name}", api_dir=FIXTURES,
-                                       website_check=False, extra_vod=False, enrich=False, enforce_minimums=False,
-                                       **kw))
+        return build.run(build.Options(out=tmp_path / name, state_dir=tmp_path / f"state-{name}", extra_vod=False,
+                                       enrich=False, enforce_minimums=False, **kw))
 
     whole = run("whole")
     one_go = len(checked)

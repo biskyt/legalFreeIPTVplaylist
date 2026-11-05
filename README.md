@@ -14,13 +14,13 @@ and publishes them to GitHub Pages.
 ## Why this project exists
 
 I built this mainly to test [MyTVPlayer](https://github.com/biskyt/MyTVPlayer), my free and open-source IPTV
-player for Android TV and Fire TV. Testing an IPTV app needs a realistic playlist: thousands of live channels in
-many countries and languages, a TV guide, and movies and series with artwork, all of which can be shared and
-shown in screenshots without anyone needing a paid subscription.
+player for Android TV and Fire TV. Testing an IPTV app needs a realistic playlist: live channels in several
+countries and languages, and movies with artwork, all of which can be shared and shown in screenshots without
+anyone needing a paid subscription.
 
 I've published it in case it's useful to other people too: anyone who wants free, legal TV without a
 subscription, or other developers who need a test playlist for their own app. The playlists work in any IPTV app;
-their extras (movies and series sections, languages, the TV guide) are tried out in
+their extras (movies and series sections, languages) are tried out in
 [MyTVPlayer](https://github.com/biskyt/MyTVPlayer) first.
 
 ## Playlists
@@ -33,31 +33,21 @@ their extras (movies and series sections, languages, the TV guide) are tried out
 | `https://biskyt.github.io/legalFreeIPTVplaylist/movies.m3u` | Movies only |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/series.m3u` | Series only |
 | `https://biskyt.github.io/legalFreeIPTVplaylist/languages/<code>.m3u` | Everything in one language, e.g. [`languages/fra.m3u`](https://biskyt.github.io/legalFreeIPTVplaylist/languages/fra.m3u) for French; [list](https://biskyt.github.io/legalFreeIPTVplaylist/) |
-| `https://biskyt.github.io/legalFreeIPTVplaylist/epg.xml.gz` | TV guide (XMLTV) for the live channels |
 
 Use `playlist.m3u` in apps that understand our [movie and series convention](FORMAT.md). Apps that take one
 playlist per content type can use the separate feeds instead. Any app can play every entry: apps that don't
 know the convention list films and episodes as channels, grouped as `Movies: …` and `Series: …`.
 
-### Languages, TV guide and movie details
+### Languages and movie details
 - **Languages:** every entry is tagged with `tvg-language` (e.g. `English;Spanish`) and `tvg-country` (e.g.
-  `DE;AT`), the attributes iptv-org's playlists also use, so players can filter by them. There's also one
+  `DE;AT`), the de facto attributes many playlists use, so players can filter by them. There's also one
   playlist per language (any language with at least 10 entries). Silent films appear in every language's list.
-  Live channels get their languages from iptv-org; films from their source, or a per-collection default.
+  Films get their languages from their source, or a per-collection default; live channels from their entry in
+  `config/curated.yaml`.
 - **Country in group names:** live channel groups start with a two-letter country code, e.g. `DE | News`,
   `US | News`, so players that only filter on group names can still sort by country. Britain is written
   `UK` there, as IPTV players expect (`tvg-country` uses the ISO code, `GB`); channels without a country use
   `INT`.
-- **Channel logos** are links to images hosted by others, mostly from iptv-org's list, and mostly on Imgur, which
-  has refused the UK since September 2025 (it shows an image saying so instead of the logo). Where iptv-org lists
-  another logo for a channel and it loads, the playlist uses that one; about half the channels have no
-  alternative and stay on Imgur.
-- **TV guide:** playlists with live channels announce `epg.xml.gz` in their header (`url-tvg`), so most players
-  load it automatically. Its channel ids are our `tvg-id`s exactly. It's merged nightly from the ready-made
-  guides at [IPTV-EPG.org](https://iptv-epg.org) (one file per country), plus
-  [iptv-org's grabber](https://github.com/iptv-org/epg) for the channels those files don't cover, which grabs one
-  seventh of them each night, 8 days ahead. A channel a ready-made file covers is never scraped. The listings
-  belong to those sources.
 - **Movie details:** films carry `tmdb-id` and `imdb-id` when [Wikidata](https://www.wikidata.org) links the
   exact Archive item or Commons file to a film (about 70% of them), and a free poster from Wikimedia Commons
   when Wikidata has one. Episodes carry their show's ids. Players can use the ids to fetch artwork and details
@@ -77,25 +67,19 @@ likely it seems to be fine, and `report.json` lists what was left out and why. T
 [`config/legal.yaml`](config/legal.yaml), and owners' removal requests (takedowns) are listed there too.
 
 ### Live TV
-Channels come from the [iptv-org](https://github.com/iptv-org/iptv) database, which lists any public stream it can
-find, including unofficial restreams, so **this project does not take its list as is**. A channel is included only
-if **its owner's own terms or pages say others may use it**. Each such channel is listed in
-[`config/permissions.yaml`](config/permissions.yaml) with the owner's exact words and the page they're on, and
-[`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html) shows both. Terms that allow use only
-for some purposes we don't meet (journalism, education), only non-commercial use, only embedding the owner's own
-player, or only on request don't count, and neither do terms that forbid it. Very few broadcasters say anything
-at all, so this is a short list; it grows as owners' terms are found or permission is given. We remove any channel
-whose owner objects.
+A channel is included only if **its owner's own terms or pages say others may use it**. Each such channel is
+listed in [`config/permissions.yaml`](config/permissions.yaml) with the owner's exact words and the page they're
+on, and [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html) shows both. Terms that allow
+use only for some purposes we don't meet (journalism, education), only non-commercial use, only embedding the
+owner's own player, or only on request don't count, and neither do terms that forbid it. Very few broadcasters say
+anything at all, so this is a short list; it grows as owners' terms are found or permission is given. We remove
+any channel whose owner objects.
 
-The stream must also be the owner's own, by one of these rules in
-[`config/live_hosts.yaml`](config/live_hosts.yaml): it's served from a domain of the channel's own website, the
-channel's website refers to the stream's host, or the host is a delivery domain the broadcaster runs. Also
-rejected: a stream with no identified channel; a channel on iptv-org's blocklist (DMCA or NSFW), marked NSFW or
-closed; a stream on a bare IP address, with login details in its URL, or on a known restream host; one that only
-plays with a spoofed user agent or referrer; and state media under UK/EU sanctions.
+The stream address comes straight from the owner's own page (the page is named in the same file), and the channel's
+logo from the owner's own site. A channel is set up in [`config/curated.yaml`](config/curated.yaml).
 
-Every stream is then **health-checked**. For HLS, both the playlist and its first variant must load. Dead
-streams are dropped; a channel with several streams falls back to the next working one.
+Every stream is **health-checked**. For HLS, both the playlist and its first variant must load. Dead streams are
+dropped.
 
 ### Movies
 Movies come from [Wikimedia Commons](https://commons.wikimedia.org), the [Internet Archive](https://archive.org/),
@@ -134,12 +118,11 @@ they're free in their country of origin too.)
 <!-- credits:start -->
 | Source | What we use | Licence / legal basis | Credit and notes |
 |---|---|---|---|
-| [iptv-org](https://github.com/iptv-org/iptv) | Database of publicly available live TV channels and streams (channels, streams, logos, blocklist) | Data published under the Unlicense (iptv-org/iptv and iptv-org/api) | iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only the channels whose owners' terms allow their use. Each channel belongs to its broadcaster; see credits.html for every channel and the words that allow it. |
+| [Voice of America](https://www.voanews.com/) | The live TV channels VOA Persian TV and VOA Chinese TV | Public domain: material produced exclusively by the Voice of America | Material licensed to VOA from others (news agencies) is not covered and may appear in the channels. |
+| [Government of the District of Columbia](https://entertainment.dc.gov/) | The live TV channel District of Columbia Network (DCN) | Creative Commons Attribution 3.0, apart from third-party content | Credit: Government of the District of Columbia, Office of Cable Television, Film, Music and Entertainment. |
 | [Internet Archive](https://archive.org/) | Films published before 1931, their metadata and thumbnails (collections feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger) | Public domain in the US by age: works published in 1930 or earlier entered it on 1 January 2026 | Files are streamed directly from archive.org. Consider donating at https://archive.org/donate |
 | [Blender Studio (Blender Foundation) open movies](https://studio.blender.org/films/) | Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel, Cosmos Laundromat, Spring, Sprite Fright, Wing It!, Caminandes | Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film) | Credit: © Blender Foundation \| studio.blender.org. Streamed from the Internet Archive's copies. |
 | [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |
-| [IPTV-EPG.org](https://iptv-epg.org/) | TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list | Free service; listings belong to the broadcasters. Ask us and we'll remove them | Downloaded once a night, per country. |
-| [iptv-org/epg](https://github.com/iptv-org/epg) | The grabber that collects listings for the remaining channels from the guide sites it supports | Software under the Unlicense; listings belong to the sites they come from | Each channel is grabbed once a week, 8 days ahead, in a nightly rotation. |
 
 Every live channel belongs to its broadcaster. The full list of broadcasters, with links, is published with each build in [credits.html](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html).
 <!-- credits:end -->
@@ -161,7 +144,7 @@ Requires Python 3.12 or later.
 pip install -e ".[dev]"
 python -m freeplaylist build --out site --state state   # tonight's scheduled share (first run does everything)
 python -m freeplaylist build --all                      # everything now (network; up to an hour or more)
-python -m freeplaylist build --live-only --no-health    # quick partial build
+python -m freeplaylist build --live-only --no-health    # quick partial build (live channels only)
 python -m freeplaylist credits                          # regenerate the README credits table
 ruff check . && pytest
 ```
@@ -172,14 +155,11 @@ never expires and the repository doesn't grow. Deleting that branch makes the ne
 
 **Nightly schedule.** Harvesting and checking everything takes a long time and would put a lot of load on
 other people's servers, so each night does a share of it ([`config/schedule.yaml`](config/schedule.yaml)):
-- **Live channels:** the channel list is refreshed every night. Stream hosts are split into 7 groups, and each
-  night checks one group plus any stream never seen before. The broadcasters' websites (the website rule above)
-  rotate the same way.
+- **Live channels:** their streams are split into groups by host, and each night checks one group plus any
+  stream never seen before.
 - **Movies and series:** each source is harvested once a week, on its own day (curated films Monday, Archive
   series Tuesday, Wikimedia Commons Wednesday, Archive movies Thursday). On that day, its new items and a
   quarter of the rest are checked.
-- **TV guide:** the ready-made guides are fetched every night; the grabber's channels (only those no ready-made
-  guide covers) rotate, one group a night, 8 days ahead each time.
 
 Each source's results are kept as a snapshot, and every night's playlists are rebuilt from all snapshots, so a
 source refreshed tonight replaces exactly its own entries. If a harvest fails, the previous snapshot is used.
@@ -189,13 +169,12 @@ To refresh everything at once, run `python -m freeplaylist build --all`, or star
 **full** ticked.
 
 **Staged runs.** To fill the playlists a source at a time (for example the very first time, or after deleting
-the `state` branch), start the workflow by hand with **only** set to one or more sources, e.g. `iptv-org`, then
-`curated,internet-archive-series,internet-archive-movies`, then `wikimedia-commons` (`--only=...` locally). Each run publishes what has been harvested so far; sources not harvested yet are left
+the `state` branch), start the workflow by hand with **only** set to one or more sources, e.g. `curated,internet-archive-series,internet-archive-movies`, then `wikimedia-commons` (`--only=...` locally). Each run publishes what has been harvested so far; sources not harvested yet are left
 out until their stage runs.
 
 **Publishing:** [`.github/workflows/build.yml`](.github/workflows/build.yml) builds daily at 04:17 UTC and on
 manual runs (Actions tab → Build playlists → Run workflow); merges don't start a build. The build runs as
-separate steps (one harvest per source, then the live and the movie checks, the playlists and the TV guide),
+separate steps (one harvest per source, then the live and the movie checks, then the playlists),
 the same as `python -m freeplaylist build --phase ...` locally, so the run's page shows how far it has got. It deploys to GitHub Pages. If a build comes out broken
 (an upstream API down, too few entries), the job fails and the previous playlists stay online. To enable
 it: **Settings → Pages → Source: GitHub Actions**.
@@ -205,9 +184,9 @@ Layout:
 ```
 config/        what to include: sources, rules, allow/deny lists, feeds, credits
 src/freeplaylist/
-  sources/     iptv_org.py (live + rules), website_check.py, internet_archive.py (movies, series),
-               wikimedia_commons.py, curated.py
-  enrich.py (Wikidata ids)  epg.py  languages.py  healthcheck.py  feeds.py  m3u.py  credits.py  build.py
+  sources/     internet_archive.py (movies, series), wikimedia_commons.py, curated.py (Blender films, live channels)
+  legal.py (what may be published)  enrich.py (Wikidata ids)  languages.py  healthcheck.py  feeds.py  m3u.py
+  credits.py  build.py
 tests/         offline tests (fixtures only)
 FORMAT.md      the M3U movie/series convention
 ```

@@ -1,18 +1,22 @@
-# Live channels whose owner's own terms or pages explicitly allow others to use them. Only channels listed here are
-# included in the live playlists, and each must also pass the checks in live_hosts.yaml (the stream has to be the
-# owner's own). Everything shown on credits.html for a live channel comes from this file.
+# Live channels whose owner's own terms or pages explicitly allow others to use them. A live channel is included
+# only if it is listed here (the channel itself is set up in curated.yaml, with the stream address taken from the
+# owner's own page). Everything shown on credits.html for a live channel comes from this file.
 #
 # An entry needs the quote, word for word, and the page it is on; check it when adding it and when it changes.
-#   channel:  the iptv-org channel id (the part of the playlist id before "@")
-#   url:      the page that says it
-#   quote:    what it says
-#   note:     what the permission leaves out or asks for (optional)
-#   checked:  when the page was read
+#   channel:      the channel id (the part of the playlist id before "@")
+#   url:          the page that says it
+#   quote:        what it says
+#   note:         what the permission leaves out or asks for (optional)
+#   stream_page:  the owner's page that publishes the stream address
+#   stream_note:  how that page publishes it
+#   checked:      when the pages were read
 #
 # Not accepted: terms that allow use only for some purposes we don't meet (journalism, education), only
 # non-commercial use (CC NC), only embedding the owner's own player, or only on request; terms that forbid it.
 permissions:
   - channel: VoATVPersian.us
+    stream_page: https://ir.voanews.com/live/video/86
+    stream_note: The VOA Persian live page contains this stream address.
     url: https://www.voanews.com/p/5338.html
     quote: All text, audio and video material produced exclusively by the Voice of America is in the public domain.
     note: >-
@@ -20,6 +24,8 @@ permissions:
       which may not be redistributed without their permission.
     checked: 2026-11-05
   - channel: VoATVChina.cn
+    stream_page: https://www.voachinese.com/live/
+    stream_note: The VOA Chinese live page contains this stream address.
     url: https://www.voanews.com/p/5338.html
     quote: All text, audio and video material produced exclusively by the Voice of America is in the public domain.
     note: >-
@@ -27,6 +33,10 @@ permissions:
       which may not be redistributed without their permission.
     checked: 2026-11-05
   - channel: DistrictofColumbiaNetwork.us
+    stream_page: https://video.oct.dc.gov/DCN/jw.html
+    stream_note: >-
+      The DCN page links "Watch DCN Live Streams" to this player page, whose player is set up with this stream
+      address as its only source.
     url: https://entertainment.dc.gov/page/terms-and-conditions-use
     quote: >-
       Except for third party content that is copyright protected or for content otherwise noted, content on this

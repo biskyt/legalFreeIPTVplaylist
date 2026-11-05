@@ -1,6 +1,6 @@
 name: Restore state
 description: >
-  Restore state/ (snapshots, stream health and guide groups) from the `state`
+  Restore state/ (snapshots and stream health) from the `state`
   branch, where the build saves it as one compressed file. No saved state yet is fine (the first run).
 runs:
   using: composite

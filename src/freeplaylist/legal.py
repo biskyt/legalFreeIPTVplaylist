@@ -1,9 +1,9 @@
 """What counts as proof that an entry may be published, and the evidence shown for each one that is kept.
 
-The rules are in config/legal.yaml. Live streams are filtered where they're built (iptv_org.build(accept=...)), so
-this module takes care of the rest: owners' takedown requests, films and episodes, and the evidence text and links
-that credits.html and catalog.json show for every entry. Anything without a basis is dropped with a reason that
-report.json records.
+The rules are in config/legal.yaml and the owners' permissions for live channels in config/permissions.yaml. This
+module drops what has no basis (owners' takedown requests, live channels without a permission, films and episodes
+with only someone's say-so) and builds the evidence text and links that credits.html and catalog.json show for
+every entry. Dropped entries are recorded with a reason in report.json.
 """
 
 from __future__ import annotations
@@ -13,9 +13,17 @@ from dataclasses import dataclass
 
 from . import net
 from .models import Decision, Entry
-from .sources.iptv_org import registrable
 
 SOURCE = "legal"
+_SECOND_LEVEL = {"co", "com", "net", "org", "gov", "edu", "ac", "or", "ne", "go", "gob", "gv", "mil", "nic", "info"}
+
+
+def registrable(host: str) -> str:
+    """example.co.uk for www.cdn.example.co.uk; a close-enough stand-in for the Public Suffix List."""
+    parts = host.lower().rstrip(".").split(".")
+    if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in _SECOND_LEVEL:
+        return ".".join(parts[-3:])
+    return ".".join(parts[-2:])
 
 
 @dataclass(frozen=True)
@@ -29,10 +37,6 @@ class Evidence:
     def as_dict(self) -> dict:
         return {"basis": self.basis, "title": self.title, "text": self.text, "links": [list(x) for x in self.links],
                 "terms": list(self.terms)}
-
-
-def accepted_live_reasons(policy: dict) -> set[str]:
-    return set(policy.get("live") or {})
 
 
 def permissions(policy: dict) -> dict[str, dict]:
@@ -83,17 +87,14 @@ def evidence(e: Entry, policy: dict, sources: dict | None = None) -> Evidence:
     """Why an entry that passed apply() may be published, with links to the evidence."""
     if e.kind == "live":
         grant = permissions(policy).get(e.id.partition("@")[0]) or {}
-        reason = next((c.get("reason") for c in e.extra.get("candidates") or [] if c["url"] == e.url), None)
-        reason = reason or e.extra.get("reason") or ""
-        rule = (policy.get("live") or {}).get(reason) or {}
-        served = (rule.get("text") or "").format(host=net.host_of(e.url), site=e.page or "its website")
         quote = " ".join(str(grant.get("quote", "")).split())
         text = f"The owner's terms say: \u201c{quote}\u201d"
-        if grant.get("note"):
-            text += " " + " ".join(str(grant["note"]).split())
-        if served:
-            text += " The stream is the owner's own: " + served[0].lower() + served[1:]
+        for key in ("note", "stream_note"):
+            if grant.get(key):
+                text += " " + " ".join(str(grant[key]).split())
         links = [("Where it says so", grant["url"])] if grant.get("url") else []
+        if grant.get("stream_page"):
+            links.append(("Page with the stream address", grant["stream_page"]))
         if e.page:
             links.append(("Channel website", e.page))
         return Evidence("permission", "The owner's terms allow it", text, tuple(links),

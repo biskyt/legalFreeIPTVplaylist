@@ -34,7 +34,7 @@ def test_snapshot_round_trip(tmp_path, entry):
 
 
 def test_sources_not_due_come_from_their_snapshot(tmp_path, monkeypatch):
-    from test_build import FIXTURES, fake_archive
+    from test_build import fake_archive
 
     from freeplaylist.sources import internet_archive as ia
     fake_archive(monkeypatch)
@@ -43,8 +43,8 @@ def test_sources_not_due_come_from_their_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(ia, "movies", lambda *a: calls.append(1) or real_movies(*a))
 
     def options(day):
-        return build.Options(out=tmp_path / "site", state_dir=tmp_path / "state", api_dir=FIXTURES, health=False,
-                             website_check=False, extra_vod=False, enrich=False, enforce_minimums=False, day=day)
+        return build.Options(out=tmp_path / "site", state_dir=tmp_path / "state", health=False, extra_vod=False,
+                             enrich=False, enforce_minimums=False, day=day)
 
     build.run(options(date(2026, 10, 21)))  # Wednesday: no snapshot yet, so harvested anyway
     first = (tmp_path / "site" / "movies.m3u").read_text()
@@ -54,18 +54,18 @@ def test_sources_not_due_come_from_their_snapshot(tmp_path, monkeypatch):
     assert len(calls) == 2
 
 
-def test_staged_run_harvests_only_named_sources(tmp_path, monkeypatch, permitted_config):
-    from test_build import FIXTURES, fake_archive
+def test_staged_run_harvests_only_named_sources(tmp_path, monkeypatch):
+    from test_build import fake_archive
     fake_archive(monkeypatch)
 
     def options(only):
-        return build.Options(out=tmp_path / "site", state_dir=tmp_path / "state", api_dir=FIXTURES, health=False,
-                             website_check=False, extra_vod=False, enrich=False, only=only,
-                             config_dir=permitted_config)
+        return build.Options(out=tmp_path / "site", state_dir=tmp_path / "state", health=False, extra_vod=False,
+                             enrich=False, only=only)
 
-    build.run(options({"iptv-org"}))  # stage 1: live only; minimums relaxed while movies are missing
-    assert (tmp_path / "site" / "movies.m3u").read_text() == "#EXTM3U\n"
-    assert "Example.uk@SD" in (tmp_path / "site" / "live.m3u").read_text()
-    build.run(options({"internet-archive-movies"}))  # stage 2 keeps stage 1's live channels from the snapshot
+    build.run(options({"curated"}))  # stage 1: the live channels and Blender's films; minimums relaxed meanwhile
+    first = (tmp_path / "site" / "movies.m3u").read_text()
+    assert "blender.BigBuckBunny_124" in first and "ia.Detour" not in first
+    assert "VoATVPersian.us@SD" in (tmp_path / "site" / "live.m3u").read_text()
+    build.run(options({"internet-archive-movies"}))  # stage 2 keeps stage 1's results from the snapshot
     assert "ia.Detour" in (tmp_path / "site" / "movies.m3u").read_text()
-    assert "Example.uk@SD" in (tmp_path / "site" / "live.m3u").read_text()
+    assert "VoATVPersian.us@SD" in (tmp_path / "site" / "live.m3u").read_text()

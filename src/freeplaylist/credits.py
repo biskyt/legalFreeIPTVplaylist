@@ -72,7 +72,7 @@ def credits_html(entries: list[Entry], sources: dict, policy: dict) -> str:
         + (f"<br><strong>Why we keep it:</strong> {esc(' '.join(str(s['proof']).split()))}" if s.get("proof") else "")
         + "</li>"
         for key, s in sources.items()
-        if (key in used or key == "iptv-org" and live or key == "internet-archive" and vod)
+        if key in used
     )
 
     def terms(ev) -> str:
@@ -84,7 +84,7 @@ def credits_html(entries: list[Entry], sources: dict, policy: dict) -> str:
         ev = evid[e.id]
         name = e.extra.get("broadcaster") or e.title
         return "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
-            esc(name), esc(e.extra.get("country") or ""), esc(ev.text), _links(ev.links), terms(ev))
+            esc(name), esc(", ".join(e.countries)), esc(ev.text), _links(ev.links), terms(ev))
 
     def vod_row(e: Entry) -> str:
         ev = evid[e.id]

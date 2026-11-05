@@ -1,10 +1,10 @@
-import pytest
 
 from freeplaylist import config, credits, legal
-from freeplaylist.sources import iptv_org
 
 GRANT = {"channel": "X.de", "url": "https://x.example/terms", "quote": "You may redistribute our live stream.",
-         "note": "Credit us.", "checked": "2026-11-05"}
+         "note": "Credit us.", "stream_page": "https://x.example/live",
+         "stream_note": "The live page names the stream.",
+         "checked": "2026-11-05"}
 POLICY = {**config.load("legal"), "permissions": [GRANT, {**GRANT, "channel": "MNT.us"}, {**GRANT, "channel": "DW.de"}]}
 
 
@@ -45,16 +45,16 @@ def test_takedowns_match_by_channel_entry_source_and_domain(entry):
     assert {d.reason for d in dropped} == {"takedown:Fox Corporation", "takedown:Yahoo"}
 
 
-def test_live_evidence_names_the_basis_and_links_to_the_channel(entry):
-    cands = [{"url": "https://cdn.example/a.m3u8", "reason": "official:website-link"}]
-    e = entry(id="X.de@SD", url="https://cdn.example/a.m3u8", page="https://x.example/",
-              extra={"reason": "official:website-domain", "candidates": cands})
+def test_live_evidence_gives_the_owners_words_and_where_the_stream_is_published(entry):
+    e = entry(id="X.de@SD", url="https://cdn.example/a.m3u8", page="https://x.example/")
     ev = legal.evidence(e, POLICY)
     assert ev.basis == "permission" and ev.title == "The owner's terms allow it"
     assert "You may redistribute our live stream." in ev.text and "Credit us." in ev.text  # the owner's own words
-    assert "x.example" in ev.text and "cdn.example" in ev.text  # and that the stream is theirs (the stream used)
+    assert "The live page names the stream." in ev.text  # and that the stream address is the owner's own
     assert ev.terms == ("https://x.example/terms",) and ev.as_dict()["terms"] == ["https://x.example/terms"]
-    assert ev.links == (("Where it says so", "https://x.example/terms"), ("Channel website", "https://x.example/"))
+    assert ev.links == (("Where it says so", "https://x.example/terms"),
+                        ("Page with the stream address", "https://x.example/live"),
+                        ("Channel website", "https://x.example/"))
 
 
 def test_live_channels_without_a_permission_are_dropped(entry):
@@ -80,48 +80,12 @@ def test_film_evidence_links_to_the_item_licence_and_imdb(entry):
     assert legal.evidence(e, POLICY, sources).terms == ("https://ia.example/terms",)
 
 
-def test_only_accepted_reasons_count_as_proof():
-    assert legal.accepted_live_reasons(POLICY) == {"official:website-domain", "official:website-link",
-                                                   "official:broadcaster-host"}
-
-
-@pytest.fixture(scope="module")
-def api():
-    return iptv_org.fetch_api(config.ROOT / "tests" / "fixtures" / "iptv_org")
-
-
-def test_build_with_accept_drops_unproven_streams_and_says_why(api):
-    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
-    entries, decisions = iptv_org.build(api, rules, accept=legal.accepted_live_reasons(POLICY))
-    assert {e.id for e in entries} == {"Example.uk@SD", "Local1.us@SD", "AlJazeera.qa@English"}
-    why = {d.reason for d in decisions if not d.accepted}
-    assert "not-proven:official:cdn-named" in why
-    assert all("reason" in c for e in entries for c in e.extra["candidates"])
-
-
-def test_a_website_that_mentions_the_host_beats_a_name_in_the_url(api):
-    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
-    host = "dwamdstream102.akamaized.net"
-    site = next(c["website"] for c in api["channels"] if c["id"] == "DW.de")
-    entries, _ = iptv_org.build(api, rules, {site: {host}}, legal.accepted_live_reasons(POLICY))
-    dw = next(e for e in entries if e.id == "DW.de@SD")
-    assert dw.extra["reason"] == "official:website-link"
-    assert site not in iptv_org.unverified_sites(api, rules, legal.accepted_live_reasons(POLICY)) or True
-
-
-def test_sites_with_only_weak_proof_are_worth_checking(api):
-    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
-    site = next(c["website"] for c in api["channels"] if c["id"] == "DW.de")
-    assert site not in iptv_org.unverified_sites(api, rules)  # accepted by name: fine without the policy
-    assert site in iptv_org.unverified_sites(api, rules, legal.accepted_live_reasons(POLICY))  # not proven
-
-
 def test_credits_page_shows_evidence_exclusions_and_sources(entry):
     live = entry(id="X.de@SD", title="X", page="https://x.example/", url="https://cdn.example/a.m3u8",
-                 extra={"broadcaster": "X TV", "country": "DE", "reason": "official:website-domain"})
+                 countries=["DE"], extra={"broadcaster": "X TV"})
     film = vod(entry, id="ia.old", title="Old Film (1925)", year=1925, attribution="Old Film by A. Maker")
-    sources = {"iptv-org": {"name": "iptv-org", "url": "https://iptv.example/", "provides": "Channels", "license": "L",
-                            "proof": "Kept only with proof."},
+    sources = {"example-source": {"name": "Example", "url": "https://example.example/", "provides": "Channels",
+                                  "license": "L", "proof": "Kept only with proof."},
                "internet-archive": {"name": "Internet Archive", "url": "https://archive.org/", "provides": "Films",
                                     "license": "L"},
                }
@@ -130,19 +94,9 @@ def test_credits_page_shows_evidence_exclusions_and_sources(entry):
     assert "You may redistribute our live stream." in page  # the owner's words, on the page
     assert "only where the owner" in page
     assert "X TV" in page and "https://x.example/" in page and "Old Film (1925)" in page
+    assert "<td>DE</td>" in page  # the channel's country
     assert "Old Film by A. Maker" in page and "Kept only with proof." in page
     assert "left out" not in page  # nothing about what isn't included
-
-
-def test_build_only_looks_at_the_channels_it_is_given(api):
-    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
-    accept = legal.accepted_live_reasons(POLICY)
-    entries, decisions = iptv_org.build(api, rules, accept=accept, only={"Example.uk"})
-    assert {e.id for e in entries} == {"Example.uk@SD"}
-    assert all("Example.uk" in d.item for d in decisions)  # nothing is said about the other channels
-    assert iptv_org.build(api, rules, accept=accept, only=set())[0] == []
-    sites = iptv_org.unverified_sites(api, rules, accept, {"DW.de"})
-    assert set(sites) == {c["website"] for c in api["channels"] if c["id"] == "DW.de"}
 
 
 def test_the_real_permission_file_is_complete():

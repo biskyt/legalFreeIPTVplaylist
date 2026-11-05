@@ -55,7 +55,7 @@ way they do for Xtream accounts, **without changing behaviour for any existing p
    - Optional TMDB enrichment, from the roadmap, can add plots and cast later.
 
 5. **Must not regress:**
-   - an M3U without the convention (e.g. iptv-org `index.country.m3u`) gives an identical channel list, the
+   - an M3U without the convention (e.g. a plain country channel list) gives an identical channel list, the
      same ids and the same categories as before;
    - existing users' hidden channels, channel order and category choices;
    - EPG from `url-tvg` / `x-tvg-url`;
@@ -67,11 +67,12 @@ way they do for Xtream accounts, **without changing behaviour for any existing p
    - Classification table: `tvg-type` movie/series/live/unknown; Xtream URL shapes; and a plain `.mp4` with a
      positive duration but no `tvg-type` stays **live**.
    - Repository test: one mixed playlist fills Live, Movies and Series correctly, and a second sync keeps the ids.
-   - Golden test: an iptv-org sample produces exactly the same channels before and after the change.
+   - Golden test: a sample playlist from an ordinary provider produces exactly the same channels before and
+     after the change.
 
 ## Notes
 
-- Live entries in our playlists use iptv-org ids (`Channel.cc@Feed`), and MyTVPlayer already cuts at `@` when
+- Live entries in our playlists use ids of the form `Channel.cc@Feed`, and MyTVPlayer already cuts at `@` when
   matching guides.
 - Our playlists set catch-up attributes (`catchup`, `catchup-days`, `catchup-source`) only when a source
   supports catch-up; today none do. Catch-up for M3U is already on MyTVPlayer's roadmap.

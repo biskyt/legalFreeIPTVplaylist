@@ -5,7 +5,7 @@ Live entries may carry several candidate streams (extra["candidates"]); the firs
 Results are remembered in state/health.json:
   * a stream that has never been seen working is dropped as soon as it fails;
   * a stream that worked before gets one grace run, and is dropped after 2 consecutive failures;
-  * a 401/403/451 on a stream iptv-org labels "Geo-blocked" is kept, as the build runs from a US data centre.
+  * a 401/403/451 on a stream labelled "Geo-blocked" is kept, as the build runs from a US data centre.
 Not every stream is checked every night (see config/schedule.yaml): new streams always are, the rest when
 their turn comes, and in between each keeps the result of its last check. A VOD entry is only dropped for a
 definite answer (such as 404), not for a timeout or server error, which archive.org returns at busy times.

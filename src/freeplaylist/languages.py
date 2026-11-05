@@ -1,7 +1,7 @@
-"""Language codes (ISO 639-3, as iptv-org uses) and their English names, and country codes by English name.
+"""Language codes (ISO 639-3) and their English names, and country codes by English name.
 
 Entries store codes; the M3U writer shows names, the de facto `tvg-language` format ("English;Spanish").
-The full list comes from iptv-org's languages.json during a build (see `load`); the built-in list below covers
+The full lists are in config/languages.yaml and config/countries.yaml (see `load`); the built-in list below covers
 offline runs and tests.
 """
 
@@ -32,11 +32,11 @@ NAMES: dict[str, str] = dict(_BUILTIN)
 _BY_NAME: dict[str, str] = {v.lower(): k for k, v in _BUILTIN.items()}
 
 
-def load(entries: list[dict]) -> None:
-    """Use iptv-org's language list ([{"code": "eng", "name": "English"}, ...]) for names and lookups."""
-    for item in entries:
-        NAMES[item["code"]] = item["name"]
-        _BY_NAME.setdefault(item["name"].lower(), item["code"])
+def load(names: dict[str, str]) -> None:
+    """Use a language list ({"eng": "English", ...}) for names and lookups."""
+    for code, name_ in names.items():
+        NAMES[code] = name_
+        _BY_NAME.setdefault(name_.lower(), code)
 
 
 def name(code: str) -> str:
@@ -78,15 +78,15 @@ _COUNTRIES = {
 
 
 def country_code(code: str) -> str:
-    """ISO 3166-1 alpha-2 for a country code as iptv-org writes it: the United Kingdom is UK there, GB in ISO."""
+    """ISO 3166-1 alpha-2 for a country code as some lists write it: the United Kingdom is UK there, GB in ISO."""
     code = code.upper()
     return "GB" if code == "UK" else code
 
 
-def load_countries(entries: list[dict]) -> None:
-    """Use iptv-org's country list ([{"code": "US", "name": "United States"}, ...]) for lookups by name."""
-    for item in entries:
-        _COUNTRIES.setdefault(item["name"].lower(), country_code(item["code"]))
+def load_countries(names: dict[str, str]) -> None:
+    """Use a country list ({"US": "United States", ...}) for lookups by name."""
+    for code, name_ in names.items():
+        _COUNTRIES.setdefault(name_.lower(), country_code(code))
 
 
 def country(name: str) -> str | None:

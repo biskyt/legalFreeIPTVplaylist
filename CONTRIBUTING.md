@@ -27,9 +27,8 @@ Where to make the change:
 
 | You want to… | Edit |
 |---|---|
-| Accept a broadcaster's own delivery domain | `config/live_hosts.yaml` → `broadcaster_hosts` |
-| Accept or block a specific channel | `config/live_allowlist.yaml` |
-| Block a restream host | `config/live_hosts.yaml` → `denied_domains` |
+| Add a live channel | `config/curated.yaml` (the channel, with the stream address from the owner's own page) and `config/permissions.yaml` (the owner's words allowing it) |
+| Remove something an owner asked us to remove | `config/legal.yaml` → `takedowns` |
 | Add an Internet Archive collection | `config/movies.yaml` |
 | Add a public-domain TV show | `config/series.yaml` (include the `basis` and `max_year`) |
 | Add a specific film or stream | `config/curated.yaml` |

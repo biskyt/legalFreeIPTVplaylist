@@ -10,19 +10,27 @@
 #   terms:        the source's terms and conditions, linked from credits.html
 
 sources:
-  iptv-org:
-    name: iptv-org
-    url: https://github.com/iptv-org/iptv
-    provides: Database of publicly available live TV channels and streams (channels, streams, logos, blocklist)
-    license: Data published under the Unlicense (iptv-org/iptv and iptv-org/api)
-    note: >-
-      iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only
-      the channels whose owners' terms allow their use. Each channel belongs to its broadcaster; see credits.html
-      for every channel and the words that allow it.
+  voice-of-america:
+    name: Voice of America
+    url: https://www.voanews.com/
+    provides: The live TV channels VOA Persian TV and VOA Chinese TV
+    license: "Public domain: material produced exclusively by the Voice of America"
+    note: Material licensed to VOA from others (news agencies) is not covered and may appear in the channels.
     proof: >-
-      A channel is kept only if its owner's own terms or pages say others may use it (the exact words and the
-      page are on credits.html), and the stream is the owner's own: served from the channel's website domain,
-      referred to by the channel's website, or on a host the broadcaster runs.
+      VOA's copyright statement puts material produced exclusively by VOA in the public domain (quoted below), and
+      the stream addresses are the ones VOA's own live pages publish.
+    terms: https://www.voanews.com/p/5338.html
+
+  dc-government:
+    name: Government of the District of Columbia
+    url: https://entertainment.dc.gov/
+    provides: The live TV channel District of Columbia Network (DCN)
+    license: Creative Commons Attribution 3.0, apart from third-party content
+    attribution: Government of the District of Columbia, Office of Cable Television, Film, Music and Entertainment
+    proof: >-
+      The District's terms license the content of its site under Creative Commons Attribution 3.0 (quoted below),
+      and the stream address is the one its DCN player is set up with.
+    terms: https://entertainment.dc.gov/page/terms-and-conditions-use
 
   internet-archive:
     name: Internet Archive
@@ -58,18 +66,3 @@ sources:
       Commons only keeps files that are free in the United States and in the country they come from; each file's
       page shows its licence and who vouched for it.
 
-  iptv-epg-org:
-    guide: true   # listed in the TV guide section of the site
-    name: IPTV-EPG.org
-    url: https://iptv-epg.org/
-    provides: TV guide listings (XMLTV) for 75 countries, merged into our epg.xml.gz for the channels we list
-    license: Free service; listings belong to the broadcasters. Ask us and we'll remove them
-    note: Downloaded once a night, per country.
-
-  iptv-org-epg:
-    guide: true
-    name: iptv-org/epg
-    url: https://github.com/iptv-org/epg
-    provides: The grabber that collects listings for the remaining channels from the guide sites it supports
-    license: Software under the Unlicense; listings belong to the sites they come from
-    note: Each channel is grabbed once a week, 8 days ahead, in a nightly rotation.

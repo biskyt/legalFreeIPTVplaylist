@@ -7,7 +7,7 @@ import logging
 import sys
 from pathlib import Path
 
-from . import build, config, credits, epg
+from . import build, config, credits
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -17,10 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     b = sub.add_parser("build", help="build the playlists into a site directory")
     b.add_argument("--out", type=Path, default=Path("site"))
     b.add_argument("--state", type=Path, default=Path("state"), help="cache kept between runs")
-    b.add_argument("--api-dir", type=Path, help="use a local copy of the iptv-org API")
     b.add_argument("--no-health", action="store_true", help="skip stream health checks")
-    b.add_argument("--no-website-check", action="store_true", help="don't fetch broadcasters' websites")
-    b.add_argument("--no-logo-check", action="store_true", help="don't look for logos that load everywhere")
     b.add_argument("--live-only", action="store_true")
     b.add_argument("--vod-only", action="store_true")
     b.add_argument("--all", action="store_true", help="harvest and check everything, ignoring config/schedule.yaml")
@@ -34,24 +31,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--check", action="store_true", help="fail if the README is out of date instead of writing")
     c.add_argument("--readme", type=Path, default=config.ROOT / "README.md")
 
-    g = sub.add_parser("epg", help="build the TV guide from the plan the last build wrote (see epg.py)")
-    g.add_argument("step", choices=("fast", "merge"), help="fast: download the ready-made guides and write the "
-                   "grabber's channels.xml; merge: add the grabbed guides and write the result")
-    g.add_argument("--state", type=Path, default=Path("state"))
-    g.add_argument("--fast", type=Path, default=Path("fast-epg.xml.gz"), help="the merged ready-made guides")
-    g.add_argument("--out", type=Path, default=Path("site/epg.xml.gz"), help="merge: the published guide")
-    g.add_argument("--grabbed", type=Path, help="merge: tonight's iptv-org/epg grabber output (.xml.gz)")
-
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-
-    if args.command == "epg":
-        if args.step == "fast":
-            count = epg.fast(args.state, args.fast)
-        else:
-            count = epg.merge(args.state, args.out, args.fast, args.grabbed)
-        print(f"guide: {count} channels")
-        return 0 if count else 1
 
     if args.command == "credits":
         sources = config.load("credits").get("sources") or {}
@@ -71,8 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     if only and only - set(build.SOURCES):
         parser.error(f"unknown sources: {', '.join(sorted(only - set(build.SOURCES)))}")
     opts = build.Options(
-        out=args.out, state_dir=args.state, api_dir=args.api_dir, health=not args.no_health,
-        website_check=not args.no_website_check, logo_check=not args.no_logo_check,
+        out=args.out, state_dir=args.state, health=not args.no_health,
         live=not args.vod_only, vod=not args.live_only, all=args.all, only=only,
         enforce_minimums=not (args.no_minimums or args.live_only or args.vod_only),
         phase=args.phase, source=args.source,

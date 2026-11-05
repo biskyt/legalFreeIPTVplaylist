@@ -76,4 +76,43 @@ ia_defaults:
   source: blender
   id_prefix: blender
 
-direct: []
+direct:
+  # Live channels. Each needs the owner's permission in permissions.yaml (a quote, and the page that says it) and
+  # uses the stream address the owner's own page publishes (see stream_page there). Logos are from the owner's site.
+  - id: VoATVPersian.us@SD
+    title: VOA Persian TV
+    kind: live
+    group: "IR | News"
+    url: https://voa-ingest.akamaized.net/hls/live/2033876/tvmc07/playlist.m3u8
+    source: voice-of-america
+    logo: https://ir.voanews.com/Content/responsive/VOA/img/webApp/ico-192x192.png
+    page: https://ir.voanews.com/live/video/86
+    language: fas
+    countries: [IR]
+    license: Public domain (material produced by the Voice of America)
+    description: Voice of America's Persian-language television channel.
+  - id: VoATVChina.cn@SD
+    title: VOA Chinese TV
+    kind: live
+    group: "CN | News"
+    url: https://voa-ingest.akamaized.net/hls/live/2033878/tvmc08/playlist.m3u8
+    source: voice-of-america
+    logo: https://www.voachinese.com/Content/responsive/VOA/img/webApp/ico-192x192.png
+    page: https://www.voachinese.com/live/
+    language: zho
+    countries: [CN]
+    license: Public domain (material produced by the Voice of America)
+    description: Voice of America's Chinese-language television channel.
+  - id: DistrictofColumbiaNetwork.us@SD
+    title: District of Columbia Network (DCN)
+    kind: live
+    group: "US | Government"
+    url: https://video.oct.dc.gov/out/u/DCN.m3u8
+    source: dc-government
+    logo: https://entertainment.dc.gov/sites/default/files/dc/sites/entertainment/featured_content/images/logo.png
+    page: https://entertainment.dc.gov/page/district-columbia-network-dcn
+    language: eng
+    countries: [US]
+    license: Creative Commons Attribution 3.0 (District of Columbia content)
+    attribution: Government of the District of Columbia, Office of Cable Television, Film, Music and Entertainment
+    description: The District of Columbia government's television channel.

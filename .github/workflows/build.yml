@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       only:
-        description: "Or harvest only these sources (comma-separated: iptv-org, curated, internet-archive-series, internet-archive-movies, wikimedia-commons)"
+        description: "Or harvest only these sources (comma-separated: curated, internet-archive-series, internet-archive-movies, wikimedia-commons)"
         type: string
         default: ""
 
@@ -39,7 +39,7 @@ jobs:
           cache: pip
       - run: pip install -e .
 
-      # state/ (each source's snapshot, stream health and guide groups) lives on the
+      # state/ (each source's snapshot and stream health) lives on the
       # `state` branch as one compressed file: free, permanent, and replaced each night by a single commit, so the
       # repo doesn't grow.
       - name: Restore state
@@ -59,9 +59,6 @@ jobs:
         run: python -m freeplaylist build $BUILD --phase harvest --source wikimedia-commons
       - name: Harvest Internet Archive movies
         run: python -m freeplaylist build $BUILD --phase harvest --source internet-archive-movies
-      - name: Harvest live channels (iptv-org and broadcaster websites)
-        timeout-minutes: 90
-        run: python -m freeplaylist build $BUILD --phase harvest --source iptv-org
       - name: Check live streams
         run: python -m freeplaylist build $BUILD --phase check-live
       - name: Check movies and series
@@ -69,42 +66,15 @@ jobs:
       - name: Build playlists
         run: python -m freeplaylist build $BUILD --phase publish
 
-      # TV guide (see src/freeplaylist/epg.py). First the ready-made guides are downloaded; then the grabber
-      # scrapes tonight's group of the channels none of them covered, for 8 days ahead; then everything is
-      # merged. If any step fails, the previous guide (kept in state/) is published, so the playlists still deploy.
-      - name: Download ready-made guides
-        continue-on-error: true
-        timeout-minutes: 30
-        run: python -m freeplaylist epg fast --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz"
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-      - name: Grab tonight's other guides
-        continue-on-error: true
-        timeout-minutes: 60
+      # Files earlier versions kept in state/ and nothing reads any more: everything but the current sources'
+      # snapshots and the stream health and film caches.
+      - name: Remove obsolete state
+        if: always() && steps.restore.outcome == 'success'
         run: |
-          git clone --depth 1 https://github.com/iptv-org/epg "$RUNNER_TEMP/epg"
-          cd "$RUNNER_TEMP/epg"
-          npm ci --no-audit --no-fund
-          # The grabber logs a line per request (and per failure); keep every 100th and a count of failures.
-          set -o pipefail
-          NODE_OPTIONS=--max-old-space-size=6144 npm run grab --- \
-            --channels="$GITHUB_WORKSPACE/state/epg/channels.xml" --days=8 --maxConnections=5 --delay=250 \
-            --output="$RUNNER_TEMP/grabbed.xml" --gzip="$RUNNER_TEMP/grabbed.xml.gz" 2>&1 |
-            awk '/^\[info\] +\[[0-9]+\/[0-9]+\]/ { if (++n % 100 == 0) { print; fflush() } next }
-                 /^\[info\] +ERR:/ { e++; next }
-                 { print; fflush() }
-                 END { print n " requests, " e + 0 " failed" }'
-      - name: Merge TV guide
-        continue-on-error: true
-        timeout-minutes: 30
-        run: |
-          python -m freeplaylist epg merge --state state --fast "$RUNNER_TEMP/fast-epg.xml.gz" \
-            --grabbed "$RUNNER_TEMP/grabbed.xml.gz" --out "$RUNNER_TEMP/epg.xml.gz"
-          mv "$RUNNER_TEMP/epg.xml.gz" state/epg.xml.gz
-      - name: Publish TV guide
-        run: |
-          if [ -f state/epg.xml.gz ]; then cp state/epg.xml.gz site/epg.xml.gz; else echo "no guide yet"; fi
+          find state -mindepth 1 -maxdepth 1 ! -name snapshots ! -name health.json ! -name ia_cache.json \
+            ! -name wikidata.json -exec rm -rf {} +
+          find state/snapshots -type f ! -name curated.json ! -name 'internet-archive-*.json' \
+            ! -name wikimedia-commons.json -delete 2>/dev/null || true
 
       - name: Save state
         if: always() && steps.restore.outcome == 'success' && hashFiles('state/**') != ''

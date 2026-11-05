@@ -31,7 +31,3 @@ combined:
 languages:
   members: [live, movies, series]
   min_entries: 10
-
-# TV guide (XMLTV) for the live channels, published next to the playlists and announced in the url-tvg header of
-# every playlist with live channels. The build writes the channel list; the workflow runs iptv-org's grabber.
-guide: epg.xml.gz

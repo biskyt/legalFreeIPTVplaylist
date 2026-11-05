@@ -45,7 +45,7 @@ channel ids match the live entries' `tvg-id`.
 
 ### Language and country
 
-These two attributes are the existing de facto convention (used, for example, by iptv-org's playlists), not
+These two attributes are the existing de facto convention (used by many playlists), not
 part of this one. They apply to every entry, live or not:
 
 | Attribute | Values | Meaning |
