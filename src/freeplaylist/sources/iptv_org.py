@@ -182,7 +182,8 @@ def _height(stream: dict) -> int:
     return int(m.group(1)) if m else 0
 
 
-def unverified_sites(api: dict[str, list], rules: Rules, accept: set[str] | None = None) -> dict[str, set[str]]:
+def unverified_sites(api: dict[str, list], rules: Rules, accept: set[str] | None = None,
+                     only: set[str] | None = None) -> dict[str, set[str]]:
     """{website: hosts of the streams to prove} for channels that have streams not yet proven and no proven one:
     worth checking for stream links. With `accept`, a stream accepted for another reason (such as a name in a CDN
     path) doesn't count as proven."""
@@ -192,6 +193,8 @@ def unverified_sites(api: dict[str, list], rules: Rules, accept: set[str] | None
     accepted: set[str] = set()
     hosts: dict[str, set[str]] = {}
     for s in api["streams"]:
+        if only is not None and s.get("channel") not in only:
+            continue
         channel = channels.get(s.get("channel"))
         v = evaluate(s, channel, blocked, rules)
         if v.accepted and (accept is None or v.reason in accept):
@@ -207,12 +210,14 @@ def unverified_sites(api: dict[str, list], rules: Rules, accept: set[str] | None
 
 
 def build(api: dict[str, list], rules: Rules, website_hosts: dict[str, set[str]] | None = None,
-          accept: set[str] | None = None) -> tuple[list[Entry], list[Decision]]:
+          accept: set[str] | None = None, only: set[str] | None = None) -> tuple[list[Entry], list[Decision]]:
     """One Entry per channel feed. Each carries every accepted stream for that feed, best first, in
     extra["candidates"]; the health check keeps the first that works.
 
     With `accept`, only streams accepted for one of those reasons count (see config/legal.yaml); the others are
-    recorded as "not-proven:<reason>", so a channel's group and credit come from a stream that is kept."""
+    recorded as "not-proven:<reason>", so a channel's group and credit come from a stream that is kept.
+    With `only`, streams of any other channel are not looked at (config/permissions.yaml lists the channels whose
+    owners allow their use)."""
     channels = {c["id"]: c for c in api["channels"]}
     blocked = {b["channel"]: b.get("reason", "blocked") for b in api["blocklist"]}
     feeds = {(f["channel"], f["id"]): f for f in api["feeds"]}
@@ -226,6 +231,8 @@ def build(api: dict[str, list], rules: Rules, website_hosts: dict[str, set[str]]
     decisions: list[Decision] = []
     grouped: dict[tuple[str, str | None], list[tuple[dict, Verdict]]] = {}
     for s in api["streams"]:
+        if only is not None and s.get("channel") not in only:
+            continue
         channel = channels.get(s.get("channel"))
         v = evaluate(s, channel, blocked, rules, website_hosts)
         if v.accepted and accept is not None and v.reason not in accept:

@@ -54,13 +54,14 @@ def test_sources_not_due_come_from_their_snapshot(tmp_path, monkeypatch):
     assert len(calls) == 2
 
 
-def test_staged_run_harvests_only_named_sources(tmp_path, monkeypatch):
+def test_staged_run_harvests_only_named_sources(tmp_path, monkeypatch, permitted_config):
     from test_build import FIXTURES, fake_archive
     fake_archive(monkeypatch)
 
     def options(only):
         return build.Options(out=tmp_path / "site", state_dir=tmp_path / "state", api_dir=FIXTURES, health=False,
-                             website_check=False, extra_vod=False, enrich=False, only=only)
+                             website_check=False, extra_vod=False, enrich=False, only=only,
+                             config_dir=permitted_config)
 
     build.run(options({"iptv-org"}))  # stage 1: live only; minimums relaxed while movies are missing
     assert (tmp_path / "site" / "movies.m3u").read_text() == "#EXTM3U\n"

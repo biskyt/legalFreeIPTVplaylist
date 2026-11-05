@@ -146,7 +146,7 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     if opts.phase == "harvest":
         return Collected(entries, decisions, {}, harvested, missing)
     entries, dropped = _dedupe(entries)
-    entries, unproven = legal.apply(entries, load("legal"))  # takedowns, and films with nothing but a say-so
+    entries, unproven = legal.apply(entries, policy_for(load))  # takedowns, and films with nothing but a say-so
     dropped += unproven
     _identify(entries)
     if opts.vod and opts.enrich and opts.phase in (None, "publish"):
@@ -158,33 +158,30 @@ def collect(opts: Options, tonight: schedule.Tonight) -> Collected:
     return Collected(entries, decisions + dropped, load("credits").get("sources") or {}, harvested, missing)
 
 
+def policy_for(load) -> dict:
+    """config/legal.yaml plus the owner permissions in config/permissions.yaml (see legal.py)."""
+    return {**load("legal"), "permissions": load("permissions").get("permissions") or []}
+
+
 def _live(opts: Options, load, tonight: schedule.Tonight) -> tuple[list[Entry], list[Decision]]:
     # Language and country names were already fetched (and loaded) by collect().
     api = iptv_org.fetch_api(opts.api_dir, tuple(f for f in iptv_org.FILES if f not in ("languages", "countries")))
     hosts_cfg = load("live_hosts")
     rules = iptv_org.Rules.from_config(hosts_cfg, load("live_allowlist"))
-    accept = legal.accepted_live_reasons(load("legal"))  # only streams with a provable basis (config/legal.yaml)
+    policy = policy_for(load)
+    accept = legal.accepted_live_reasons(policy)  # only streams that are the owner's own (config/legal.yaml)
+    only = set(legal.permissions(policy))  # and only channels whose owners allow their use
     site_links = None
     check = hosts_cfg.get("website_check") or {}
     if opts.website_check and check.get("enabled", True):
         path = opts.state_dir / "website_links.json"
         state = config.load_state(path)
-        sites = iptv_org.unverified_sites(api, rules, accept)
+        sites = iptv_org.unverified_sites(api, rules, accept, only)
         site_links = website_check.find_hosts(set(sites), state, tonight, everything=opts.all,
                                               max_sites=check.get("max_sites", 2500))
         config.save_state(path, {s: v for s, v in state.items() if s in sites})
         log.info("website check: %d sites with streams to prove", len(sites))
-    entries, decisions = iptv_org.build(api, rules, site_links, accept)
-    if opts.website_check:
-        # The terms and conditions of each channel's website, to point to on credits.html.
-        path = opts.state_dir / "website_terms.json"
-        state = config.load_state(path)
-        sites = {e.page for e in entries if e.page}
-        terms = website_check.find_terms(sites, state, max_sites=check.get("max_terms", 400))
-        config.save_state(path, {s: v for s, v in state.items() if s in sites})
-        for e in entries:
-            e.extra["terms"] = terms.get(e.page, [])
-        log.info("terms: found for %d of %d channel websites", len(terms), len(sites))
+    entries, decisions = iptv_org.build(api, rules, site_links, accept, only)
     if opts.logo_check:
         path = opts.state_dir / "logo_check.json"
         state = config.load_state(path)
@@ -348,7 +345,7 @@ def index_html(built: dict[str, feeds.Feed], sources: dict | None = None) -> str
 table{{border-collapse:collapse}}td,th{{border-bottom:1px solid #ccc;padding:.3rem .8rem;text-align:left}}</style>
 </head><body>
 <h1>Legal free IPTV playlist</h1>
-<p>Live TV channels that their owners publish, and public-domain and openly licensed movies, as M3U
+<p>Live TV channels whose owners' terms allow their use, and public-domain and openly licensed movies, as M3U
 playlists. Rebuilt daily. This site only links to streams; it hosts no video.</p>
 <p><strong>Why each entry is legal:</strong> an entry is published only when we can show why it may be.
 <a href="credits.html">credits.html</a> gives the reason for every channel and film, with links to the
@@ -423,5 +420,5 @@ def run(opts: Options) -> Result:
         guides = iptv_org.fetch_api(opts.api_dir, ("guides",))["guides"]
         epg.write_plan(opts.state_dir, epg.plan(built["live"].entries, guides, tonight))
     write_site(opts.out, built, decisions, sources, f"{PAGES}/{guide}" if guide else None,
-               config.load("legal", opts.config_dir))
+               policy_for(lambda name: config.load(name, opts.config_dir)))
     return Result(built, decisions)

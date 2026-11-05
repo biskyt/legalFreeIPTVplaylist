@@ -35,6 +35,11 @@ def accepted_live_reasons(policy: dict) -> set[str]:
     return set(policy.get("live") or {})
 
 
+def permissions(policy: dict) -> dict[str, dict]:
+    """{channel id: its entry in config/permissions.yaml}: the live channels whose owners allow their use."""
+    return {p["channel"]: p for p in policy.get("permissions") or []}
+
+
 def _takedown(e: Entry, policy: dict) -> str | None:
     channel = e.id.partition("@")[0]
     domains = {registrable(h) for h in (urllib.parse.urlparse(e.page or "").hostname, net.host_of(e.url)) if h}
@@ -65,6 +70,8 @@ def apply(entries: list[Entry], policy: dict) -> tuple[list[Entry], list[Decisio
         owner = _takedown(e, policy)
         if owner:
             dropped.append(Decision(SOURCE, e.id, False, f"takedown:{owner}"))
+        elif e.kind == "live" and e.id.partition("@")[0] not in permissions(policy):
+            dropped.append(Decision(SOURCE, e.id, False, "not-proven:no-permission"))
         elif e.kind != "live" and _vod_basis(e, vod) is None:
             dropped.append(Decision(SOURCE, e.id, False, "not-proven:uploader-claim"))
         else:
@@ -75,13 +82,22 @@ def apply(entries: list[Entry], policy: dict) -> tuple[list[Entry], list[Decisio
 def evidence(e: Entry, policy: dict, sources: dict | None = None) -> Evidence:
     """Why an entry that passed apply() may be published, with links to the evidence."""
     if e.kind == "live":
+        grant = permissions(policy).get(e.id.partition("@")[0]) or {}
         reason = next((c.get("reason") for c in e.extra.get("candidates") or [] if c["url"] == e.url), None)
         reason = reason or e.extra.get("reason") or ""
         rule = (policy.get("live") or {}).get(reason) or {}
-        host = net.host_of(e.url)
-        text = (rule.get("text") or "No basis recorded.").format(host=host, site=e.page or "its website")
-        links = (("Channel website", e.page),) if e.page else ()
-        return Evidence(reason, rule.get("title", reason), text, links, tuple(e.extra.get("terms") or ()))
+        served = (rule.get("text") or "").format(host=net.host_of(e.url), site=e.page or "its website")
+        quote = " ".join(str(grant.get("quote", "")).split())
+        text = f"The owner's terms say: \u201c{quote}\u201d"
+        if grant.get("note"):
+            text += " " + " ".join(str(grant["note"]).split())
+        if served:
+            text += " The stream is the owner's own: " + served[0].lower() + served[1:]
+        links = [("Where it says so", grant["url"])] if grant.get("url") else []
+        if e.page:
+            links.append(("Channel website", e.page))
+        return Evidence("permission", "The owner's terms allow it", text, tuple(links),
+                        (grant["url"],) if grant.get("url") else ())
     vod = policy.get("vod") or {}
     basis = _vod_basis(e, vod) or ""
     links = [("Source page", e.page)] if e.page else []

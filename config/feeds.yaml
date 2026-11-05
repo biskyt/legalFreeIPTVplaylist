@@ -8,7 +8,7 @@ feeds:
   live:
     kind: live
     title: Live TV channels
-    min_entries: 300
+    min_entries: 1   # only channels whose owners allow their use (config/permissions.yaml)
   movies:
     kind: movie
     title: Movies

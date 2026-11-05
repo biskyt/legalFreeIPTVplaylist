@@ -1,0 +1,35 @@
+# Live channels whose owner's own terms or pages explicitly allow others to use them. Only channels listed here are
+# included in the live playlists, and each must also pass the checks in live_hosts.yaml (the stream has to be the
+# owner's own). Everything shown on credits.html for a live channel comes from this file.
+#
+# An entry needs the quote, word for word, and the page it is on; check it when adding it and when it changes.
+#   channel:  the iptv-org channel id (the part of the playlist id before "@")
+#   url:      the page that says it
+#   quote:    what it says
+#   note:     what the permission leaves out or asks for (optional)
+#   checked:  when the page was read
+#
+# Not accepted: terms that allow use only for some purposes we don't meet (journalism, education), only
+# non-commercial use (CC NC), only embedding the owner's own player, or only on request; terms that forbid it.
+permissions:
+  - channel: VoATVPersian.us
+    url: https://www.voanews.com/p/5338.html
+    quote: All text, audio and video material produced exclusively by the Voice of America is in the public domain.
+    note: >-
+      The same page excludes material licensed to VOA from others (news agencies such as AFP, AP and Reuters),
+      which may not be redistributed without their permission.
+    checked: 2026-11-05
+  - channel: VoATVChina.cn
+    url: https://www.voanews.com/p/5338.html
+    quote: All text, audio and video material produced exclusively by the Voice of America is in the public domain.
+    note: >-
+      The same page excludes material licensed to VOA from others (news agencies such as AFP, AP and Reuters),
+      which may not be redistributed without their permission.
+    checked: 2026-11-05
+  - channel: DistrictofColumbiaNetwork.us
+    url: https://entertainment.dc.gov/page/terms-and-conditions-use
+    quote: >-
+      Except for third party content that is copyright protected or for content otherwise noted, content on this
+      site is licensed under a Creative Commons Attribution 3.0 License.
+    note: Creative Commons Attribution 3.0 asks for credit to the District of Columbia. Third-party content is excluded.
+    checked: 2026-11-05

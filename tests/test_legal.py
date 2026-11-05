@@ -3,7 +3,9 @@ import pytest
 from freeplaylist import config, credits, legal
 from freeplaylist.sources import iptv_org
 
-POLICY = config.load("legal")
+GRANT = {"channel": "X.de", "url": "https://x.example/terms", "quote": "You may redistribute our live stream.",
+         "note": "Credit us.", "checked": "2026-11-05"}
+POLICY = {**config.load("legal"), "permissions": [GRANT, {**GRANT, "channel": "MNT.us"}, {**GRANT, "channel": "DW.de"}]}
 
 
 def vod(entry, **kw):
@@ -36,7 +38,7 @@ def test_takedowns_match_by_channel_entry_source_and_domain(entry):
     by_domain = entry(id="Some.us@SD", page="https://news.yahoo.com/live", url="https://cdn.example/e.m3u8")
     stream_domain = entry(id="Else.us@SD", url="https://fox-foxnewsnow.foxnews.com/f.m3u8")
     fine = entry(id="DW.de@SD", page="https://www.dw.com/", url="https://dw.example/g.m3u8")
-    policy = {"takedowns": [*POLICY["takedowns"], {"owner": "Fox Corporation", "sources": ["fox-owned"]}]}
+    policy = {**POLICY, "takedowns": [*POLICY["takedowns"], {"owner": "Fox Corporation", "sources": ["fox-owned"]}]}
     everything = [fox_news, local, one_station, other_station, by_source, by_domain, stream_domain, fine]
     kept, dropped = legal.apply(everything, policy)
     assert [e.id for e in kept] == ["MNT.us@WXYZ", "DW.de@SD"]
@@ -47,13 +49,20 @@ def test_live_evidence_names_the_basis_and_links_to_the_channel(entry):
     cands = [{"url": "https://cdn.example/a.m3u8", "reason": "official:website-link"}]
     e = entry(id="X.de@SD", url="https://cdn.example/a.m3u8", page="https://x.example/",
               extra={"reason": "official:website-domain", "candidates": cands})
-    e.extra["terms"] = ["https://x.example/terms"]
     ev = legal.evidence(e, POLICY)
-    assert ev.basis == "official:website-link"  # the stream actually used, not the entry's first choice
+    assert ev.basis == "permission" and ev.title == "The owner's terms allow it"
+    assert "You may redistribute our live stream." in ev.text and "Credit us." in ev.text  # the owner's own words
+    assert "x.example" in ev.text and "cdn.example" in ev.text  # and that the stream is theirs (the stream used)
     assert ev.terms == ("https://x.example/terms",) and ev.as_dict()["terms"] == ["https://x.example/terms"]
-    assert "publishes it" not in ev.text and "licence" not in ev.text  # it's not claimed to be a licence
-    assert "https://x.example/" in ev.text and "cdn.example" in ev.text
-    assert ev.links == (("Channel website", "https://x.example/"),)
+    assert ev.links == (("Where it says so", "https://x.example/terms"), ("Channel website", "https://x.example/"))
+
+
+def test_live_channels_without_a_permission_are_dropped(entry):
+    allowed = entry(id="X.de@SD")
+    silent = entry(id="Silent.de@SD")
+    kept, dropped = legal.apply([allowed, silent], POLICY)
+    assert [e.id for e in kept] == ["X.de@SD"]
+    assert [(d.item, d.reason) for d in dropped] == [("Silent.de@SD", "not-proven:no-permission")]
 
 
 def test_film_evidence_links_to_the_item_licence_and_imdb(entry):
@@ -109,20 +118,38 @@ def test_sites_with_only_weak_proof_are_worth_checking(api):
 
 def test_credits_page_shows_evidence_exclusions_and_sources(entry):
     live = entry(id="X.de@SD", title="X", page="https://x.example/", url="https://cdn.example/a.m3u8",
-                 extra={"broadcaster": "X TV", "country": "DE", "reason": "official:website-domain",
-                        "terms": ["https://x.example/terms"]})
-    nothing = entry(id="Y.de@SD", title="Y", page="https://y.example/", url="https://cdn.example/b.m3u8",
-                    extra={"broadcaster": "Y TV", "country": "DE", "reason": "official:website-domain"})
+                 extra={"broadcaster": "X TV", "country": "DE", "reason": "official:website-domain"})
     film = vod(entry, id="ia.old", title="Old Film (1925)", year=1925, attribution="Old Film by A. Maker")
     sources = {"iptv-org": {"name": "iptv-org", "url": "https://iptv.example/", "provides": "Channels", "license": "L",
                             "proof": "Kept only with proof."},
                "internet-archive": {"name": "Internet Archive", "url": "https://archive.org/", "provides": "Films",
                                     "license": "L"},
                }
-    page = credits.credits_html([live, nothing, film], sources, POLICY)
+    page = credits.credits_html([live, film], sources, POLICY)
     assert '<a href="https://x.example/terms">Terms and conditions</a>' in page
-    assert "None found on the site" in page  # Y TV: said plainly, not left blank
-    assert "not claim a licence" in page
+    assert "You may redistribute our live stream." in page  # the owner's words, on the page
+    assert "only where the owner" in page
     assert "X TV" in page and "https://x.example/" in page and "Old Film (1925)" in page
     assert "Old Film by A. Maker" in page and "Kept only with proof." in page
     assert "left out" not in page  # nothing about what isn't included
+
+
+def test_build_only_looks_at_the_channels_it_is_given(api):
+    rules = iptv_org.Rules.from_config(config.load("live_hosts"), config.load("live_allowlist"))
+    accept = legal.accepted_live_reasons(POLICY)
+    entries, decisions = iptv_org.build(api, rules, accept=accept, only={"Example.uk"})
+    assert {e.id for e in entries} == {"Example.uk@SD"}
+    assert all("Example.uk" in d.item for d in decisions)  # nothing is said about the other channels
+    assert iptv_org.build(api, rules, accept=accept, only=set())[0] == []
+    sites = iptv_org.unverified_sites(api, rules, accept, {"DW.de"})
+    assert set(sites) == {c["website"] for c in api["channels"] if c["id"] == "DW.de"}
+
+
+def test_the_real_permission_file_is_complete():
+    grants = config.load("permissions")["permissions"]
+    assert grants, "an empty list would publish no live channels"
+    channels = [g["channel"] for g in grants]
+    assert len(channels) == len(set(channels))
+    for g in grants:
+        assert g["url"].startswith("https://") and g["checked"]
+        assert len(" ".join(g["quote"].split())) > 40, f"{g['channel']}: the owner's exact words are needed"

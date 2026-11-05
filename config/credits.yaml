@@ -17,12 +17,12 @@ sources:
     license: Data published under the Unlicense (iptv-org/iptv and iptv-org/api)
     note: >-
       iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only
-      the streams it can show the owner publishes. Each channel belongs to its broadcaster; see credits.html for
-      every channel and why it is included.
+      the channels whose owners' terms allow their use. Each channel belongs to its broadcaster; see credits.html
+      for every channel and the words that allow it.
     proof: >-
-      A live stream is kept only if it is served from the channel's own website domain, the channel's own website
-      refers to the stream's host, or the host is run by the broadcaster itself. That shows the owner serves it
-      openly; it is not a licence, so each channel's terms and conditions are linked.
+      A channel is kept only if its owner's own terms or pages say others may use it (the exact words and the
+      page are on credits.html), and the stream is the owner's own: served from the channel's website domain,
+      referred to by the channel's website, or on a host the broadcaster runs.
 
   internet-archive:
     name: Internet Archive

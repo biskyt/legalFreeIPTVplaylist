@@ -77,27 +77,22 @@ likely it seems to be fine, and `report.json` lists what was left out and why. T
 [`config/legal.yaml`](config/legal.yaml), and owners' removal requests (takedowns) are listed there too.
 
 ### Live TV
-Channels come from the [iptv-org](https://github.com/iptv-org/iptv) database. iptv-org lists any public stream
-it can find, including unofficial restreams, so **this project does not take its list as is**. A stream is
-kept only if its owner serves it openly (no login), shown by one of these:
+Channels come from the [iptv-org](https://github.com/iptv-org/iptv) database, which lists any public stream it can
+find, including unofficial restreams, so **this project does not take its list as is**. A channel is included only
+if **its owner's own terms or pages say others may use it**. Each such channel is listed in
+[`config/permissions.yaml`](config/permissions.yaml) with the owner's exact words and the page they're on, and
+[`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html) shows both. Terms that allow use only
+for some purposes we don't meet (journalism, education), only non-commercial use, only embedding the owner's own
+player, or only on request don't count, and neither do terms that forbid it. Very few broadcasters say anything
+at all, so this is a short list; it grows as owners' terms are found or permission is given. We remove any channel
+whose owner objects.
 
-- **Its own domain:** the stream is served from a domain of the channel's own website.
-- **Its own website:** the channel's own website refers to the stream's host (the build reads the sites of
-  channels nothing else confirms, and caches the result).
-- **Its own server:** the host is a delivery domain run by the broadcaster itself
-  ([`config/live_hosts.yaml`](config/live_hosts.yaml)).
-
-This shows the owner serves the stream openly; it is **not a licence** to play it in other apps. Each channel's
-terms and conditions are linked on [`credits.html`](https://biskyt.github.io/legalFreeIPTVplaylist/credits.html)
-where its website has them (many small broadcasters publish none), and we remove any channel whose owner objects.
-
-Also rejected: a stream with no identified channel; a channel on iptv-org's blocklist (DMCA or NSFW), marked NSFW
-or closed; a stream on a bare IP address, with login details in its URL, or on a known restream host; one that
-only plays with a spoofed user agent or referrer; and state media under UK/EU sanctions.
-
-**Left out because nothing proves them:** streams on playout vendors' servers (a host name says nothing about
-who may use a feed), streams where only a name in a shared CDN's address matches the channel, and anything an
-owner has asked us to remove.
+The stream must also be the owner's own, by one of these rules in
+[`config/live_hosts.yaml`](config/live_hosts.yaml): it's served from a domain of the channel's own website, the
+channel's website refers to the stream's host, or the host is a delivery domain the broadcaster runs. Also
+rejected: a stream with no identified channel; a channel on iptv-org's blocklist (DMCA or NSFW), marked NSFW or
+closed; a stream on a bare IP address, with login details in its URL, or on a known restream host; one that only
+plays with a spoofed user agent or referrer; and state media under UK/EU sanctions.
 
 Every stream is then **health-checked**. For HLS, both the playlist and its first variant must load. Dead
 streams are dropped; a channel with several streams falls back to the next working one.
@@ -139,7 +134,7 @@ they're free in their country of origin too.)
 <!-- credits:start -->
 | Source | What we use | Licence / legal basis | Credit and notes |
 |---|---|---|---|
-| [iptv-org](https://github.com/iptv-org/iptv) | Database of publicly available live TV channels and streams (channels, streams, logos, blocklist) | Data published under the Unlicense (iptv-org/iptv and iptv-org/api) | iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only the streams it can show the owner publishes. Each channel belongs to its broadcaster; see credits.html for every channel and why it is included. |
+| [iptv-org](https://github.com/iptv-org/iptv) | Database of publicly available live TV channels and streams (channels, streams, logos, blocklist) | Data published under the Unlicense (iptv-org/iptv and iptv-org/api) | iptv-org collects links; it does not host streams or check that they are licensed. This project keeps only the channels whose owners' terms allow their use. Each channel belongs to its broadcaster; see credits.html for every channel and the words that allow it. |
 | [Internet Archive](https://archive.org/) | Films published before 1931, their metadata and thumbnails (collections feature_films, Film_Noir, SciFi_Horror, Comedy_Films, silent_films, classic_cartoons, prelinger) | Public domain in the US by age: works published in 1930 or earlier entered it on 1 January 2026 | Files are streamed directly from archive.org. Consider donating at https://archive.org/donate |
 | [Blender Studio (Blender Foundation) open movies](https://studio.blender.org/films/) | Big Buck Bunny, Elephants Dream, Sintel, Tears of Steel, Cosmos Laundromat, Spring, Sprite Fright, Wing It!, Caminandes | Creative Commons Attribution (CC BY 2.5 / 3.0 / 4.0, per film) | Credit: © Blender Foundation \| studio.blender.org. Streamed from the Internet Archive's copies. |
 | [Wikimedia Commons](https://commons.wikimedia.org/) | Public-domain and freely licensed films and videos (category "Films in the public domain") | Public domain in the US and in the country of origin, or CC0 / CC BY / CC BY-SA, per file | Each film's author and licence are listed in catalog.json and on its Commons page. |

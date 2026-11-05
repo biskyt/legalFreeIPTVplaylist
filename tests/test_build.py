@@ -29,11 +29,12 @@ def fake_archive(monkeypatch):
     monkeypatch.setattr(ia.net, "get_json", metadata)
 
 
-def test_offline_build_writes_site(tmp_path, monkeypatch):
+def test_offline_build_writes_site(tmp_path, monkeypatch, permitted_config):
     fake_archive(monkeypatch)
     out = tmp_path / "site"
     opts = build.Options(out=out, state_dir=tmp_path / "state", api_dir=FIXTURES, health=False,
-                         website_check=False, extra_vod=False, enrich=False, enforce_minimums=False)
+                         website_check=False, extra_vod=False, enrich=False, enforce_minimums=False,
+                         config_dir=permitted_config)
     result = build.run(opts)
 
     names = {p.name for p in out.iterdir()}
@@ -41,8 +42,8 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
             "credits.html", "index.html"} <= names
 
     _, live = m3u.parse((out / "live.m3u").read_text())
-    # Only streams with a provable basis: the channel's own website domain, or a broadcaster-run host. The
-    # fixture's CDN-name matches (DW, Euronews, teleSUR) are left out.
+    # Only channels whose owners allow their use, and whose stream is the owner's own (domain or broadcaster-run
+    # host): DW has a permission here, but its only stream is a name in a CDN address, so it's left out.
     assert {e["tvg-id"] for e in live} == {"Example.uk@SD", "Local1.us@SD", "AlJazeera.qa@English"}
     _, movies = m3u.parse((out / "movies.m3u").read_text())
     ids = {e["tvg-id"] for e in movies}
@@ -63,9 +64,11 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     blender = next(i for i in catalog["items"] if i["id"] == "blender.BigBuckBunny_124")
     assert blender["license"] == "CC BY 3.0" and "Blender Foundation" in blender["attribution"]
     example = next(i for i in catalog["items"] if i["id"] == "Example.uk@SD")
-    assert example["legal"]["basis"] == "official:website-domain" and example["legal"]["links"]
+    assert example["legal"]["basis"] == "permission" and example["legal"]["terms"] == ["https://example.example/terms"]
+    assert "Anyone may redistribute our live stream." in example["legal"]["text"]
     credits_page = (out / "credits.html").read_text()
     assert "Example" in credits_page and "ia.Detour" not in credits_page and "Published in 1925" in credits_page
+    assert "Anyone may redistribute our live stream." in credits_page and "example.example/terms" in credits_page
     assert "left out" not in credits_page and "uploader" not in credits_page  # only what's included is listed
     reasons = {d for d in json.loads((out / "report.json").read_text())["decisions"]["legal"]}
     assert "rejected:not-proven:uploader-claim" in reasons

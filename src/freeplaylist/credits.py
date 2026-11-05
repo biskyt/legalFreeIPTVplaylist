@@ -106,10 +106,8 @@ small{{color:#555}}</style>
 <h1>Sources, credits and legal basis</h1>
 <p>This project only links to streams and files; it hosts no video. Each channel, film and episode belongs to its
 owner. <strong>Films</strong> are public domain or openly licensed: the basis and evidence for each are below.
-<strong>Live channels</strong> are streams that their owners serve openly (no login) from their own websites.
-We link to them; we do not claim a licence to play them in other apps, and we have not verified that every owner's
-terms allow it. Each channel's terms and conditions are linked below where its website has them (many small
-broadcasters publish none). If you own
+<strong>Live channels</strong> are included only where the owner's own terms or pages say others may use them: the
+table gives the owner's words and links to the page that says it. If you own
 something listed here and want it removed, <a href="https://github.com/biskyt/legalFreeIPTVplaylist/issues">tell us</a>
 and it will be removed.</p>
 <h2>Basis for what is included</h2><ul>{bases}</ul>
