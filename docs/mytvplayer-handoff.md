@@ -77,7 +77,7 @@ way they do for Xtream accounts, **without changing behaviour for any existing p
 - Our playlists set catch-up attributes (`catchup`, `catchup-days`, `catchup-source`) only when a source
   supports catch-up; today none do. Catch-up for M3U is already on MyTVPlayer's roadmap.
 
-## Addendum (FORMAT.md 1.1): languages, TMDB ids and the TV guide
+## Addendum (FORMAT.md 1.1): languages and TMDB ids
 
 Our playlists now carry more metadata. Each item below is optional for MyTVPlayer, and each improves what our
 playlists (and others that use the same attributes) look like in the app.
@@ -94,10 +94,8 @@ playlists (and others that use the same attributes) look like in the app.
 2. **TMDB and IMDb ids.** Movies may have `tmdb-id` (TMDB movie id) and `imdb-id`. Episodes may have the
    *series'* `tmdb-id` (TMDB TV id) and `imdb-id`. When TMDB artwork and details (already on the roadmap) are
    enabled, look items up by these ids first, and fall back to searching by title and year.
-3. **TV guide.** The playlist header now has `url-tvg="https://biskyt.github.io/legalFreeIPTVplaylist/epg.xml.gz"`.
-   Its channel ids equal our live `tvg-id`s exactly (including the `@Feed` part). MyTVPlayer already reads the
-   first `url-tvg`; nothing else should be needed, but check that matching works with the exact id first, then
-   the id cut at `@`.
+3. **TV guide.** The playlists no longer have a `url-tvg` header or an `epg.xml.gz` file. The project removed
+   the guide. No work is needed in MyTVPlayer.
 4. **Per-language playlists** are published at `…/languages/<ISO 639-3>.m3u` (e.g. `languages/fra.m3u`). These
    are ordinary playlists; no work is needed, but the app's "free channels" setup could offer them.
 5. **Group names.** Live channel groups now start with a two-letter country code (`DE | News`, `UK | News`,
