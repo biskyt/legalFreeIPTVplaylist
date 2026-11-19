@@ -40,7 +40,7 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
 
     _, live = m3u.parse((out / "live.m3u").read_text())
     # The live channels are the curated ones, each with its owner's permission in config/permissions.yaml.
-    assert {e["tvg-id"] for e in live} == {"VoATVPersian.us@SD", "VoATVChina.cn@SD", "DistrictofColumbiaNetwork.us@SD"}
+    assert {e["tvg-id"] for e in live} == {"VoATVPersian.us@SD", "VoATVChina.cn@SD"}
     _, movies = m3u.parse((out / "movies.m3u").read_text())
     ids = {e["tvg-id"] for e in movies}
     assert "ia.Detour" in ids and "blender.BigBuckBunny_124" in ids
@@ -60,7 +60,7 @@ def test_offline_build_writes_site(tmp_path, monkeypatch):
     assert "in the public domain" in voa["legal"]["text"] and voa["source"] == "voice-of-america"
     credits_page = (out / "credits.html").read_text()
     assert "VOA Persian TV" in credits_page and "ia.Detour" not in credits_page and "Published in 1925" in credits_page
-    assert "in the public domain" in credits_page and "Creative Commons Attribution 3.0" in credits_page
+    assert "in the public domain" in credits_page
     assert "https://ir.voanews.com/live/video/86" in credits_page  # where the owner publishes the stream address
     assert "left out" not in credits_page and "uploader" not in credits_page  # only what's included is listed
     reasons = {d for d in json.loads((out / "report.json").read_text())["decisions"]["legal"]}

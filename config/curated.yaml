@@ -103,16 +103,3 @@ direct:
     countries: [CN]
     license: Public domain (material produced by the Voice of America)
     description: Voice of America's Chinese-language television channel.
-  - id: DistrictofColumbiaNetwork.us@SD
-    title: District of Columbia Network (DCN)
-    kind: live
-    group: "US | Government"
-    url: https://video.oct.dc.gov/out/u/DCN.m3u8
-    source: dc-government
-    logo: https://entertainment.dc.gov/sites/default/files/dc/sites/entertainment/featured_content/images/logo.png
-    page: https://entertainment.dc.gov/page/district-columbia-network-dcn
-    language: eng
-    countries: [US]
-    license: Creative Commons Attribution 3.0 (District of Columbia content)
-    attribution: Government of the District of Columbia, Office of Cable Television, Film, Music and Entertainment
-    description: The District of Columbia government's television channel.

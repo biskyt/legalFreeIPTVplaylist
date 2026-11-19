@@ -21,17 +21,6 @@ sources:
       the stream addresses are the ones VOA's own live pages publish.
     terms: https://www.voanews.com/p/5338.html
 
-  dc-government:
-    name: Government of the District of Columbia
-    url: https://entertainment.dc.gov/
-    provides: The live TV channel District of Columbia Network (DCN)
-    license: Creative Commons Attribution 3.0, apart from third-party content
-    attribution: Government of the District of Columbia, Office of Cable Television, Film, Music and Entertainment
-    proof: >-
-      The District's terms license the content of its site under Creative Commons Attribution 3.0 (quoted below),
-      and the stream address is the one its DCN player is set up with.
-    terms: https://entertainment.dc.gov/page/terms-and-conditions-use
-
   internet-archive:
     name: Internet Archive
     url: https://archive.org/

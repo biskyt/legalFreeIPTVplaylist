@@ -37,7 +37,6 @@ def test_live_channels_are_curated_with_languages_and_countries():
     by_id = {e.id: e for e in entries}
     assert by_id["VoATVPersian.us@SD"].languages == ["fas"] and by_id["VoATVPersian.us@SD"].countries == ["IR"]
     assert by_id["VoATVChina.cn@SD"].languages == ["zho"] and by_id["VoATVChina.cn@SD"].countries == ["CN"]
-    assert by_id["DistrictofColumbiaNetwork.us@SD"].languages == ["eng"]
     assert all(e.kind == "live" and e.page and e.logo.startswith("https://") for e in entries)
 
 

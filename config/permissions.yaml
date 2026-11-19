@@ -32,14 +32,3 @@ permissions:
       The same page excludes material licensed to VOA from others (news agencies such as AFP, AP and Reuters),
       which may not be redistributed without their permission.
     checked: 2026-11-05
-  - channel: DistrictofColumbiaNetwork.us
-    stream_page: https://video.oct.dc.gov/DCN/jw.html
-    stream_note: >-
-      The DCN page links "Watch DCN Live Streams" to this player page, whose player is set up with this stream
-      address as its only source.
-    url: https://entertainment.dc.gov/page/terms-and-conditions-use
-    quote: >-
-      Except for third party content that is copyright protected or for content otherwise noted, content on this
-      site is licensed under a Creative Commons Attribution 3.0 License.
-    note: Creative Commons Attribution 3.0 asks for credit to the District of Columbia. Third-party content is excluded.
-    checked: 2026-11-05
